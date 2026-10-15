@@ -1,1 +1,9 @@
-openwakeword
+tflite-runtime
+numpy
+librosa
+sounddevice
+flask
+flask-socketio
+pigpio
+mfrc522
+spidev
