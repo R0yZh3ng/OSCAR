@@ -1,4 +1,4 @@
-tflite-runtime
+#tflite-runtime
 numpy
 librosa
 sounddevice
@@ -7,3 +7,5 @@ flask-socketio
 pigpio
 mfrc522
 spidev
+pixel-ring
+RPi.GPIO

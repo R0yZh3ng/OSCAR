@@ -20,15 +20,15 @@ class RFIDReader:
             return None
         return uid_to_str(uid[:4])
 
-    def wait_for_scan(self, poll_interval=0.1, cooldown = 2.0):
+    def wait_for_scan(self, poll_interval=0.1, cooldown=2.0):
         while True:
             uid = self.read_uid()
             if uid:
                 time.sleep(cooldown)
                 return uid
             time.sleep(poll_interval)
-    
+
     def close(self):
-        import RPI.GPIO as GPIO
+        import RPi.GPIO as GPIO
 
         GPIO.cleanup()

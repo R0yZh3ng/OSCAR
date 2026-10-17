@@ -12,8 +12,8 @@ As the user, I want to say "oscar" to wake the system, so that it starts listeni
 without me touching anything.
 - **Acceptance criteria:** Saying "oscar" transitions the system from idle to listening within
   ~1s; LEDs change from idle color to a pulsing "listening" state.
-- **Tasks:** Picovoice account + custom `.ppn` for "oscar"; control daemon `IDLE → AWAKE`
-  transition; LED pulse state.
+- **Tasks:** Include "oscar" in the self-trained keyword model (`voice/kws.py`); control daemon
+  `IDLE → AWAKE` transition; LED pulse state.
 
 ### US-2 · Wake by snap — `v1`
 As the user, I want a finger snap to work as an alternate wake trigger, so that I can get the
@@ -28,7 +28,7 @@ As the user, I want the system to stop actively listening for commands after I'm
 pause, so that it doesn't sit in an active state indefinitely.
 - **Acceptance criteria:** Saying "sleep," or a period of silence (inactivity timeout), returns
   the system to `IDLE` and LEDs return to the mode-colored idle state.
-- **Tasks:** Inactivity timer in the control daemon's state machine; "sleep" keyword file.
+- **Tasks:** Inactivity timer in the control daemon's state machine; "sleep" keyword in the model.
 
 ---
 
@@ -39,7 +39,7 @@ As the user, I want to say "wall" or "closet" while the system is listening, so 
 projector physically rotates to face that surface without me touching it.
 - **Acceptance criteria:** Command triggers a servo move to that wall's calibrated angle; display
   content re-warps to match within a couple seconds.
-- **Tasks:** `hardware/servo.py` (pigpio angle control); keyword files for "wall"/"closet";
+- **Tasks:** `hardware/servo.py` (pigpio angle control); "wall"/"closet" keywords in the model;
   command router wiring.
 
 ### US-5 · Per-wall image correction — `v1`
@@ -108,7 +108,7 @@ As the user, I want to say "schedule" or "hide," so that I can bring up or clear
 without walking over to a device.
 - **Acceptance criteria:** "schedule" shows the current mode's filtered content; "hide" blanks
   the projected page.
-- **Tasks:** Flask endpoints + WebSocket push for show/hide; keyword files.
+- **Tasks:** Flask endpoints + WebSocket push for show/hide; "schedule"/"hide" keywords in the model.
 
 ### US-13 · At-a-glance mode/status via LEDs — `v1`
 As the user, I want the ReSpeaker HAT's LEDs to reflect what the system is doing, so that I get
