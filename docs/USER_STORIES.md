@@ -172,10 +172,11 @@ to) the glove, so that gesture control doesn't require wearing hardware.
 ### US-20 · iPhone as a camera/mic control panel
 As the user, I want to optionally use my iPhone as an additional mic and camera input, so that I
 have a mobile control surface beyond the fixed Pi-mounted hardware.
-- **Acceptance criteria:** TBD — needs either a native companion app or a web app; web app
-  requires HTTPS for iOS camera/mic access via `getUserMedia`.
-- **Tasks:** Not yet designed; deprioritized since the ReSpeaker HAT now covers always-on mic
-  duty locally.
+- **Acceptance criteria:** A web page on the iPhone (HTTPS, kept awake, plugged into the Pi)
+  streams mic audio to the Pi's keyword model and sends gesture events; an RFID tap toggles
+  mic/camera on and off.
+- **Tasks:** Designed in [PHONE_SENSOR_PLAN.md](PHONE_SENSOR_PLAN.md). Now the first thing to
+  build (no ESP32 hardware on hand), and its recorder mode collects the keyword training data.
 
 ### US-21 · Additional RFID interaction patterns
 As the user, I want to explore more uses for RFID beyond mode switching, so that tagging becomes
