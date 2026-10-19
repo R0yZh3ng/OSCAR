@@ -68,3 +68,11 @@ Cheap Amazon projectors have no network control. Options, in order of preference
 pulse + `pc/agent.py`. 4. Projector power (after the IR parts arrive or the HDMI test).
 5. Router/daemon per PLAN.md, with the PC delivering keyword/gesture events. 6. Phone sensor
 page recorder/streaming (built; see PHONE_SENSOR_PLAN.md) now runs on the PC.
+
+## Running the tab switcher (on the Pi)
+
+```
+scripts/start_kiosk.sh &        # once; Chromium with remote debugging on :9222
+python scripts/routine.py       # preloads every URL in config/preset.json, then tap tags
+```
+`tests/test_tabs.py` covers `display/tabs.py` with a fake Chromium, so it runs on any machine.
