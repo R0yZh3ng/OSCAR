@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 OSCAR is a voice/RFID-controlled wall projector assistant running on a Raspberry Pi 4B (2GB). **All source files are currently empty stubs**; the only real content is `docs/PLAN.md` (the authoritative design, build schedule, and verification checklist) and `docs/USER_STORIES.md` (feature backlog, US-1..US-22). Read PLAN.md before implementing anything. There is no build system, linter, or test suite yet; `requirements.txt` is the only tooling file.
 
+**Architecture update (2026-10-19):** the PC does heavy compute and the Pi is an always-on hub (tab-switching display, servo, RFID, tracker, PC/projector power). See `docs/PI_HUB_PLAN.md`, which overrides PLAN.md where they conflict.
+
 The wake-word approach is a self-trained TFLite keyword model (not Picovoice); PLAN.md wins on any conflict with USER_STORIES.md.
 
 ## Architecture (from PLAN.md)
