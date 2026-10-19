@@ -1,0 +1,7 @@
+{
+  "keywords": ["oscar", "wall", "closet", "schedule", "hide", "sleep"],
+  "background_label": "background",
+  "clip_seconds": 1.0,
+  "ambient_seconds": 5.0,
+  "mic_on_boot": false
+}

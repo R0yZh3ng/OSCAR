@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OSCAR Sensor</title>
+<style>
+  :root { --bg:#f6f6f4; --fg:#1b1b1b; --muted:#6b6b6b; --card:#fff; --line:#ddd; --ok:#1a7f4b; --bad:#b3261e; --accent:#2457d6; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#111; --fg:#eee; --muted:#999; --card:#1c1c1c; --line:#333; --ok:#4cc38a; --bad:#ff6b61; --accent:#7aa2ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font:16px/1.4 -apple-system, system-ui, sans-serif; }
+  main { max-width:480px; margin:0 auto; display:grid; gap:12px; }
+  h1 { font-size:20px; margin:0; display:flex; justify-content:space-between; align-items:center; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; display:grid; gap:10px; }
+  .pill { font-size:13px; padding:2px 10px; border-radius:99px; border:1px solid var(--line); color:var(--muted); }
+  .pill.on { color:var(--ok); border-color:var(--ok); }
+  .pill.off { color:var(--bad); border-color:var(--bad); }
+  button { font:inherit; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button:disabled { opacity:.45; }
+  .meter { height:14px; border-radius:7px; background:var(--line); overflow:hidden; }
+  .meter > div { height:100%; width:0; background:var(--ok); transition:width .08s; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; }
+  .row > * { flex:1; }
+  .big { font-size:40px; text-align:center; min-height:56px; }
+  .muted { color:var(--muted); font-size:14px; }
+  .counts { display:flex; gap:6px; flex-wrap:wrap; }
+  .counts span { font-size:13px; padding:2px 8px; border:1px solid var(--line); border-radius:6px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OSCAR Sensor <span id="conn" class="pill off">disconnected</span></h1>
+
+  <div class="card">
+    <button id="start" class="primary">Start mic</button>
+    <div id="live" hidden>
+      <div class="row"><span id="micState" class="pill">mic off</span><span id="wake" class="pill">wake lock -</span></div>
+      <div class="meter" style="margin-top:10px"><div id="level"></div></div>
+    </div>
+    <div id="err" class="muted" role="status"></div>
+  </div>
+
+  <div class="card" id="streamCard" hidden>
+    <b>Quality check</b>
+    <span class="muted">Streams to a WAV on the Pi so you can listen back.</span>
+    <button id="streamBtn">Record stream to Pi</button>
+    <div id="streamOut" class="muted"></div>
+  </div>
+
+  <div class="card" id="recCard" hidden>
+    <b>Keyword recorder</b>
+    <div class="big" id="prompt">&nbsp;</div>
+    <div class="row" id="kwButtons"></div>
+    <div class="row"><button id="ambient">Ambient capture</button><button id="auto">Auto-run all</button></div>
+    <div class="counts" id="counts"></div>
+    <div id="recOut" class="muted"></div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.7.5/dist/socket.io.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const sock = io("/sensor", { reconnection: true, reconnectionDelay: 500, reconnectionDelayMax: 3000 });
+let cfg = null, ctx = null, stream = null, node = null, wakeLock = null;
+let micOn = false, streaming = false, grab = null;   // grab: {need, chunks, done}
+
+sock.on("connect", () => { setConn(true); refreshCounts(); });
+sock.on("disconnect", () => { setConn(false); streaming = false; $("streamBtn").textContent = "Record stream to Pi"; });
+function setConn(on) { const c = $("conn"); c.textContent = on ? "connected" : "disconnected"; c.className = "pill " + (on ? "on" : "off"); }
+
+// Pi-side privacy switch (RFID): gate the stream without tearing down the permission.
+sock.on("sensor_control", (m) => { if (ctx && "mic" in m) setMic(!!m.mic); });
+
+function setMic(on) {
+  micOn = on;
+  if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = on));
+  const s = $("micState"); s.textContent = on ? "mic live" : "mic off"; s.className = "pill " + (on ? "on" : "off");
+  if (!on) $("level").style.width = "0";
+}
+
+async function acquireWake() {
+  try { wakeLock = await navigator.wakeLock.request("screen"); $("wake").textContent = "wake lock on"; $("wake").className = "pill on";
+        wakeLock.addEventListener("release", () => { $("wake").textContent = "wake lock lost"; $("wake").className = "pill off"; }); }
+  catch (e) { $("wake").textContent = "no wake lock"; $("wake").className = "pill off"; }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && ctx) { acquireWake(); ctx.resume(); } });
+
+$("start").onclick = async () => {
+  $("err").textContent = "";
+  try {
+    cfg = await (await fetch("/api/config")).json();
+    stream = await navigator.mediaDevices.getUserMedia({ audio: {
+      echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    await ctx.audioWorklet.addModule("/static/worklet.js");
+    node = new AudioWorkletNode(ctx, "pcm-worklet");
+    ctx.createMediaStreamSource(stream).connect(node);
+    node.port.onmessage = onPcm;
+    await ctx.resume();
+    $("start").hidden = true; $("live").hidden = false; $("streamCard").hidden = false; $("recCard").hidden = false;
+    setMic(true);
+    acquireWake();
+    buildButtons(); refreshCounts();
+  } catch (e) {
+    $("err").textContent = (location.protocol !== "https:" ? "Needs HTTPS. " : "") + e.name + ": " + e.message;
+  }
+};
+
+function onPcm(e) {
+  if (!micOn) return;
+  const { pcm, rms } = e.data;
+  $("level").style.width = Math.min(100, Math.sqrt(rms) * 140) + "%";
+  if (streaming) sock.emit("audio", pcm);
+  if (grab) {
+    grab.chunks.push(new Int16Array(pcm)); grab.have += pcm.byteLength / 2;
+    if (grab.have >= grab.need) { const g = grab; grab = null; g.done(joinPcm(g.chunks, g.need)); }
+  }
+}
+function joinPcm(chunks, n) {
+  const out = new Int16Array(n); let o = 0;
+  for (const c of chunks) { const k = Math.min(c.length, n - o); out.set(c.subarray(0, k), o); o += k; if (o >= n) break; }
+  return out;
+}
+
+$("streamBtn").onclick = () => {
+  if (!streaming) { streaming = true; sock.emit("stream_start"); $("streamBtn").textContent = "Stop and save"; $("streamOut").textContent = ""; }
+  else { streaming = false; $("streamBtn").textContent = "Record stream to Pi";
+         sock.emit("stream_stop", (r) => { $("streamOut").textContent = r.ok ? `saved ${r.seconds.toFixed(1)}s -> ${r.path}` : "nothing recorded"; }); }
+};
+
+function capture(seconds) { return new Promise((res) => { grab = { need: Math.round(seconds * 16000), have: 0, chunks: [], done: res }; }); }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function upload(label, pcm) { return new Promise((res) => sock.emit("clip", label, pcm.buffer, res)); }
+
+async function recordOne(label, seconds, say) {
+  if (!micOn) { $("recOut").textContent = "Mic is off."; return false; }
+  for (let i = 3; i > 0; i--) { $("prompt").textContent = i; await sleep(600); }
+  $("prompt").textContent = say; if (navigator.vibrate) navigator.vibrate(30);
+  const pcm = await capture(seconds);
+  $("prompt").textContent = " ";
+  const r = await upload(label, pcm);
+  $("recOut").textContent = r.ok ? `${label} #${r.count}` : r.error;
+  refreshCounts();
+  return r.ok;
+}
+
+function buildButtons() {
+  const box = $("kwButtons"); box.innerHTML = "";
+  for (const k of [...cfg.keywords, cfg.background_label]) {
+    const b = document.createElement("button"); b.textContent = k;
+    b.onclick = () => recordOne(k, cfg.clip_seconds, k === cfg.background_label ? "(silence)" : `say "${k}"`);
+    box.appendChild(b);
+  }
+}
+$("ambient").onclick = () => recordOne(cfg.background_label, cfg.ambient_seconds, "room noise...");
+$("auto").onclick = async () => {
+  for (const k of cfg.keywords) for (let i = 0; i < 5; i++) if (!(await recordOne(k, cfg.clip_seconds, `say "${k}"`))) return;
+};
+function refreshCounts() {
+  if (!sock.connected) return;
+  sock.emit("counts", (c) => { $("counts").innerHTML = Object.entries(c).map(([k, v]) => `<span>${k} ${v}</span>`).join(""); });
+}
+</script>
+</body>
+</html>
