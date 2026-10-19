@@ -9,7 +9,6 @@
 html { font-size:16px; }
 body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui,-apple-system,sans-serif;
        padding:0 16px 40px; }
-body.wall { font-size:22px; }
 button { font:inherit; color:inherit; cursor:pointer; }
 main { max-width:860px; margin:0 auto; }
 h1 { font-size:22px; margin:22px 0 2px; }
@@ -67,7 +66,6 @@ h2 .grow { flex:1; }
 .ring-arc { transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1); }
 .tile.add .ringbtn svg circle { stroke-dasharray:4 6; }
 
-body.wall .week .arrow, body.wall #addbtn { display:none; }
 
 /* ---- sheets ---- */
 #scrim { position:fixed; inset:0; background:#0009; z-index:20; display:none; align-items:flex-end; justify-content:center; }
@@ -224,3 +222,26 @@ main { max-width:1180px; }
 .groups { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:4px 22px; }
 .groups .habits { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
 .hmwrap.compact .hm i { aspect-ratio:auto; height:15px; }
+
+/* ---- wall (projector) theme: ?wall=1 [&zoom=1.6] ----
+   Low-end projectors wash out dim greys and blur small text, so: pure black background,
+   brighter text/borders, and everything scaled up (zoom also scales the px-sized charts). */
+body.wall { --bg:#000; --card:#0c0f15; --card2:#1b2130; --line:#5d667c; --text:#fff; --dim:#d4dae8;
+  --accent:#8fb0ff; --gold:#ffd23f; --ok:#4eea9f; --bad:#ff6b82; --r:14px;
+  padding:0 20px 20px; font-weight:500; }
+body.wall main { max-width:none; zoom:var(--wz, 1.6); }
+body.wall .pwrap { zoom:var(--wz, 1.6); }
+body.wall .week .arrow, body.wall #addbtn, body.wall .chev, body.wall .phead .x { display:none; }
+body.wall .card, body.wall .w, body.wall .chip { border-width:2px; }
+body.wall h1 { font-weight:800; }
+body.wall h2 { font-size:14px; color:var(--text); letter-spacing:.05em; }
+body.wall .small { font-size:14px; }
+body.wall .tile .nm { font-size:15px; max-width:130px; }
+body.wall .tile .sub, body.wall .cols .c span, body.wall .cols .c em, body.wall .months,
+body.wall .cal .h, body.wall .legend, body.wall .ladder div, body.wall .day span { font-size:13px; }
+body.wall .bar { height:14px; }
+body.wall .cols .c i { min-height:5px; }
+body.wall .w { cursor:default; }
+/* the wall can't scroll, so the dashboard keeps only what fits one screen; charts live on the tag pages */
+body.wall .board, body.wall .w[data-p="mood"] { display:none; }
+body.wall *, body.wall *::before, body.wall *::after { animation:none !important; transition:none !important; }

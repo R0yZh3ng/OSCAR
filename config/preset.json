@@ -1,6 +1,6 @@
 {
 	"rfid_tags": {
-		"3DE50207": "http://localhost:5001/",
-		"E3121706": "http://localhost:5001/#/year"
+		"3DE50207": "http://localhost:5001/?wall=1",
+		"E3121706": "http://localhost:5001/?wall=1#/year"
 	}
 }

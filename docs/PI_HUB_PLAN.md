@@ -97,6 +97,14 @@ python scripts/routine.py       # preloads every URL in config/preset.json, then
 ```
 `tests/test_tabs.py` covers `display/tabs.py` with a fake Chromium, so it runs on any machine.
 
-Tag pages (`config/preset.json`): `3DE50207` -> tracker dashboard (`/`), `E3121706` -> year heatmap
-(`/#/year`). Any tracker hash route works (`#/habits`, `#/trend`, `#/streaks`, ...). Tabs on the
+Tag pages (`config/preset.json`): `3DE50207` -> tracker dashboard (`/?wall=1`), `E3121706` -> year
+heatmap (`/?wall=1#/year`). Any tracker hash route works (`#/habits`, `#/trend`, `#/streaks`, ...). Tabs on the
 same SPA are told apart by their hash.
+
+## Wall display theme (`?wall=1`)
+
+The projector is low quality, so the tracker has a wall mode (CSS block "wall (projector) theme" in
+`tracker/static/app.css`): everything scaled 1.6x with `zoom` (override: `&zoom=2`), pure black
+background, brighter text and borders, larger small labels, no animations. The wall can't scroll,
+so the dashboard shows only habits, level and streaks; the charts are on the other pages
+(`#/trend`, `#/year`, ...). Phones use the normal URL without `?wall=1` and look unchanged.
