@@ -76,8 +76,9 @@ session and the list of apps/URLs.
 Cheap Amazon projectors have no network control. Options, in order of preference:
 1. **IR blaster:** a VS1838B receiver to learn the remote's power code, an IR LED on a GPIO pin to
    replay it (kit transistors/resistors drive the LED). Needs ~$2 of parts.
-2. **HDMI signal:** test whether the projector sleeps without signal and wakes with it
-   (`vcgencmd display_power 0/1`). Free if it works.
+2. ~~**HDMI signal**~~ **Tested 2026-10-19: does not work.** The projector stays on "No signal"
+   when the signal is cut. (`vcgencmd display_power` is a no-op on this Pi's KMS driver, and
+   `wlr-randr --off` then `--on` broke the display until reboot, so don't do this on the kiosk.)
 3. **Smart plug:** only if the projector powers on by itself when mains returns; skips fan
    cooldown. The kit relay is not to be wired to mains.
 
