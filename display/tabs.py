@@ -25,12 +25,27 @@ class TabSwitcher:
         return [t for t in json.loads(self._http("GET", self._base + "/json/list")) if t.get("type") == "page"]
 
     def find(self, url):
-        """Match a loaded tab by URL prefix, ignoring any redirect-added query/fragment."""
-        want = url.split("#")[0].split("?")[0].rstrip("/")
-        for t in self.tabs():
-            have = t["url"].split("#")[0].split("?")[0].rstrip("/")
-            if have == want or t["url"].startswith(url):
+        """Find a loaded tab for url: exact match first, then same page ignoring query.
+
+        SPA hash routes (e.g. the tracker's /#/year) are distinct tabs, so a wanted URL with a
+        fragment only matches that fragment. One without a fragment may match any tab on that page.
+        """
+        def split(u):
+            base, _, frag = u.partition("#")
+            return base.split("?")[0].rstrip("/"), frag
+
+        tabs = self.tabs()
+        for t in tabs:
+            if t["url"].rstrip("/") == url.rstrip("/"):
                 return t
+        wbase, wfrag = split(url)
+        for t in tabs:
+            if split(t["url"]) == (wbase, wfrag):
+                return t
+        if not wfrag:
+            for t in tabs:
+                if split(t["url"])[0] == wbase:
+                    return t
         return None
 
     def show(self, url):
@@ -39,7 +54,8 @@ class TabSwitcher:
         if tab:
             self._http("GET", f"{self._base}/json/activate/{tab['id']}")
             return True
-        self._http("PUT", f"{self._base}/json/new?{url}")
+        # urllib drops '#...' from a request URL, so escape it for Chromium to read back
+        self._http("PUT", f"{self._base}/json/new?{url.replace('#', '%23')}")
         return False
 
     def close(self, url):

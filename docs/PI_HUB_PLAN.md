@@ -72,7 +72,12 @@ page recorder/streaming (built; see PHONE_SENSOR_PLAN.md) now runs on the PC.
 ## Running the tab switcher (on the Pi)
 
 ```
+python -m tracker.app &         # the tracker pages the tags point at (port 5001)
 scripts/start_kiosk.sh &        # once; Chromium with remote debugging on :9222
 python scripts/routine.py       # preloads every URL in config/preset.json, then tap tags
 ```
 `tests/test_tabs.py` covers `display/tabs.py` with a fake Chromium, so it runs on any machine.
+
+Tag pages (`config/preset.json`): `3DE50207` -> tracker dashboard (`/`), `E3121706` -> year heatmap
+(`/#/year`). Any tracker hash route works (`#/habits`, `#/trend`, `#/streaks`, ...). Tabs on the
+same SPA are told apart by their hash.

@@ -37,6 +37,18 @@ class TabSwitcherTest(unittest.TestCase):
         self.assertFalse(self.sw.show("https://example.com/"))
         self.assertEqual(self.fake.calls[-1], ("PUT", "/json/new?https://example.com/"))
 
+    def test_hash_routes_are_separate_tabs(self):
+        self.fake.tabs = [
+            {"id": "T1", "type": "page", "url": "http://localhost:5001/#/year"},
+            {"id": "T0", "type": "page", "url": "http://localhost:5001/"},
+        ]
+        self.assertTrue(self.sw.show("http://localhost:5001/"))
+        self.assertEqual(self.fake.calls[-1], ("GET", "/json/activate/T0"))
+        self.assertTrue(self.sw.show("http://localhost:5001/#/year"))
+        self.assertEqual(self.fake.calls[-1], ("GET", "/json/activate/T1"))
+        self.assertFalse(self.sw.show("http://localhost:5001/#/streaks"))
+        self.assertEqual(self.fake.calls[-1], ("PUT", "/json/new?http://localhost:5001/%23/streaks"))
+
     def test_ignores_non_page_targets(self):
         self.assertEqual([t["id"] for t in self.sw.tabs()], ["A", "B"])
 
