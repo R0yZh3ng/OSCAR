@@ -43,6 +43,11 @@
 - The projector has a screensaver option (minimum 5 min); not yet tested whether it powers
   anything down. Its menu may also have an auto-power-off setting.
 
+### Docs
+- Added `docs/INTERVIEW_PREP.md`: pitch, honest status table, architecture, design decisions,
+  problems solved, talking points, likely questions, session log. Must be updated every session
+  (rule added to `CLAUDE.md`).
+
 ### Open / next
 - Projector power needs an IR blaster (VS1838B receiver to learn the remote, 940nm IR LED; kit
   transistor and resistors drive it; planned GPIO 22 TX, 23 RX with `gpio-ir` overlays and

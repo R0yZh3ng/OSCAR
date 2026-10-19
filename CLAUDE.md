@@ -8,6 +8,8 @@ OSCAR is a voice/RFID-controlled wall projector assistant running on a Raspberry
 
 **Architecture update (2026-10-19):** the PC does heavy compute and the Pi is an always-on hub (tab-switching display, servo, RFID, tracker, PC/projector power). See `docs/PI_HUB_PLAN.md`, which overrides PLAN.md where they conflict.
 
+**Interview prep (standing rule):** the user may need to discuss this project in interviews. At the end of every working session, update `docs/INTERVIEW_PREP.md` (status table, design decisions, problems solved, talking points, session log) and add the day's entry to `docs/CHANGELOG.md`. Keep "built / tested / planned" claims honest.
+
 The wake-word approach is a self-trained TFLite keyword model (not Picovoice); PLAN.md wins on any conflict with USER_STORIES.md.
 
 ## Architecture (from PLAN.md)
