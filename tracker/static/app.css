@@ -223,15 +223,15 @@ main { max-width:1180px; }
 .groups .habits { grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); }
 .hmwrap.compact .hm i { aspect-ratio:auto; height:15px; }
 
-/* ---- wall (projector) theme: ?wall=1 [&zoom=1.6] ----
+/* ---- wall (projector) theme: ?wall=1 [&zoom=1.8] [&theme=light] ----
    Low-end projectors wash out dim greys and blur small text, so: pure black background,
    brighter text/borders, and everything scaled up (zoom also scales the px-sized charts). */
-body.wall { --bg:#000; --card:#0c0f15; --card2:#1b2130; --line:#5d667c; --text:#fff; --dim:#d4dae8;
-  --accent:#8fb0ff; --gold:#ffd23f; --ok:#4eea9f; --bad:#ff6b82; --r:14px;
-  padding:0 20px 20px; font-weight:500; }
-body.wall main { max-width:none; zoom:var(--wz, 1.6); }
-body.wall .pwrap { zoom:var(--wz, 1.6); }
-body.wall .week .arrow, body.wall #addbtn, body.wall .chev, body.wall .phead .x { display:none; }
+body.wall { --bg:#000; --card:#000; --card2:#59627a; --line:#fff; --text:#fff; --dim:#fff;
+  --accent:#9db9ff; --gold:#ffd23f; --ok:#4eea9f; --bad:#ff7b8f; --r:14px;
+  padding:0 20px 20px; font-weight:700; }
+body.wall main { max-width:none; zoom:var(--wz, 1.8); }
+body.wall .pwrap { zoom:var(--wz, 1.8); }
+body.wall .week, body.wall #addbtn, body.wall .chev, body.wall .phead .x { display:none; }
 body.wall .card, body.wall .w, body.wall .chip { border-width:2px; }
 body.wall h1 { font-weight:800; }
 body.wall h2 { font-size:14px; color:var(--text); letter-spacing:.05em; }
@@ -245,3 +245,13 @@ body.wall .w { cursor:default; }
 /* the wall can't scroll, so the dashboard keeps only what fits one screen; charts live on the tag pages */
 body.wall .board, body.wall .w[data-p="mood"] { display:none; }
 body.wall *, body.wall *::before, body.wall *::after { animation:none !important; transition:none !important; }
+body.wall .card, body.wall .w, body.wall .chip { border-width:3px; }
+body.wall .tile .nm, body.wall .lvl, body.wall h1 { font-weight:800; }
+body.wall .tile .sub { color:var(--text); }
+body.wall svg circle[stroke="var(--card2)"] { stroke:#59627a; }
+body.wall .ring-arc, body.wall .cols .c i, body.wall .hm i { filter:brightness(1.35) saturate(1.2); }
+/* dark text on a white wall of light, for very bright rooms: ?wall=1&theme=light */
+body.wall.light { --bg:#fff; --card:#fff; --card2:#9aa3b8; --line:#000; --text:#000; --dim:#111;
+  --accent:#0030c8; --gold:#8a5a00; --ok:#006b3a; --bad:#c00020; }
+body.wall.light svg circle[stroke="var(--card2)"] { stroke:#9aa3b8; }
+body.wall.light .ring-arc, body.wall.light .cols .c i, body.wall.light .hm i { filter:brightness(.8) saturate(1.3); }

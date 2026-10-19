@@ -104,7 +104,8 @@ same SPA are told apart by their hash.
 ## Wall display theme (`?wall=1`)
 
 The projector is low quality, so the tracker has a wall mode (CSS block "wall (projector) theme" in
-`tracker/static/app.css`): everything scaled 1.6x with `zoom` (override: `&zoom=2`), pure black
-background, brighter text and borders, larger small labels, no animations. The wall can't scroll,
+`tracker/static/app.css`): everything scaled 1.8x with `zoom` (override: `&zoom=1.5`), pure black
+background, white bold text, thick white borders, brightened rings, no animations, no weekday
+strip. For very bright rooms add `&theme=light` (black on white). The wall can't scroll,
 so the dashboard shows only habits, level and streaks; the charts are on the other pages
 (`#/trend`, `#/year`, ...). Phones use the normal URL without `?wall=1` and look unchanged.

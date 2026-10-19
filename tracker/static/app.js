@@ -728,7 +728,8 @@ oncontextmenu = (e) => { if (e.target.closest(".ringbtn")) e.preventDefault(); }
 
 if (location.search.includes("wall=1")) {  // projector display: see "wall (projector) theme" in app.css
   document.body.classList.add("wall");
-  const z = new URLSearchParams(location.search).get("zoom");
+  const q = new URLSearchParams(location.search), z = q.get("zoom");
+  if (q.get("theme") === "light") document.body.classList.add("light");
   if (z > 0) document.body.style.setProperty("--wz", z);
 }
 // deep links: #/trend (any widget page), #habit=3, #new
