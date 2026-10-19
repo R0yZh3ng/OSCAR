@@ -43,14 +43,33 @@ Chromium runs permanently with `--remote-debugging-port=9222`. An RFID tap maps 
 opens one only on first use. Keep the tab count low (2-3) on 2 GB RAM. Background tabs go stale, so
 they are refreshed on a timer (later step).
 
-## Powering the PC on (Wi-Fi)
+## Waking the PC (Wi-Fi, sleep only)
 
-Wake-on-LAN does not work over Wi-Fi: the NIC is off while the PC sleeps or is shut down.
-Plan: a Pi GPIO pin drives an NPN transistor (or the kit's relay) wired across the motherboard
-power-button header pins, pulsing it ~0.3 s. The Pi pings the PC first and does nothing if it is
-already up, since the pulse toggles power. Ethernet + WoL is the alternative. After the PC boots,
-a small agent on it (`pc/agent.py`, later step) opens the work apps; the Pi calls it once the PC
-answers.
+The PC is only ever put to sleep, never shut down, and is on Wi-Fi. Wake-on-LAN does not work over
+Wi-Fi, so `hardware/pc_power.py` pulses a GPIO pin (BCM 27 by default) into an NPN transistor wired
+across the motherboard power-button header, which wakes it from sleep. `pc/control.py` then:
+
+1. pings the PC; if it already answers, the button is **never** pressed (a pulse on a running PC
+   would toggle it);
+2. otherwise pulses, and waits up to `boot_timeout` s for it to answer;
+3. SSHes in with a key and runs `unlock_cmd` (default `loginctl unlock-sessions`). No password is
+   stored on the Pi or typed.
+
+Settings are in `config/pc.json` (set `host`). Run by hand: `python -m pc.control`.
+
+Wiring (kit parts): GPIO 27 -> 1 kOhm -> NPN base, emitter -> Pi GND and motherboard power-switch
+pin (-), collector -> motherboard power-switch pin (+). Check the board manual for the PWR_SW pins.
+Do not connect anything to mains.
+
+Things to verify on the real machine (not testable here):
+- A short press wakes the PC from sleep (BIOS may need power-button wake enabled).
+- `ssh user@pc loginctl unlock-sessions` works by hand with a key. Remote SSH sessions are not
+  "active local", so polkit may refuse; if so, change `unlock_cmd` or add a polkit rule.
+- The lock screen honours logind unlock (GNOME/KDE do; i3lock/swaylock may not).
+- After resume, Wi-Fi may take a few seconds; `boot_timeout` covers it.
+
+Opening the work apps after unlock (`pc/agent.py`) is a later step; it needs the PC's desktop
+session and the list of apps/URLs.
 
 ## Projector power
 
@@ -65,7 +84,7 @@ Cheap Amazon projectors have no network control. Options, in order of preference
 ## Build order
 
 1. This doc. 2. `display/tabs.py` + RFID script using it (tab switching). 3. PC power-button
-pulse + `pc/agent.py`. 4. Projector power (after the IR parts arrive or the HDMI test).
+pulse + SSH unlock (done, unverified on hardware); `pc/agent.py` for work apps later. 4. Projector power (after the IR parts arrive or the HDMI test).
 5. Router/daemon per PLAN.md, with the PC delivering keyword/gesture events. 6. Phone sensor
 page recorder/streaming (built; see PHONE_SENSOR_PLAN.md) now runs on the PC.
 
