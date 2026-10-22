@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCAR calibrate</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font: 14px system-ui, sans-serif; color: #eee; }
+  #stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; pointer-events: none; }
+  #stage iframe { width: 100%; height: 100%; border: 0; }
+  .handle { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%;
+            border: 3px solid #fff; background: rgba(255, 80, 80, .55); touch-action: none; cursor: grab;
+            display: grid; place-items: center; font-weight: 700; user-select: none; }
+  .handle.sel { background: rgba(80, 200, 255, .7); }
+  #bar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap;
+         align-items: center; padding: 8px 12px; background: rgba(20, 20, 20, .92); border: 1px solid #555; border-radius: 8px; }
+  #bar input { width: 7em; background: #222; color: #eee; border: 1px solid #555; border-radius: 4px; padding: 4px; }
+  #bar button { padding: 5px 12px; border-radius: 4px; border: 1px solid #777; background: #333; color: #eee; cursor: pointer; }
+  #bar button.primary { background: #2a6; border-color: #2a6; }
+  #msg { min-width: 10em; color: #9d9; }
+  #msg.err { color: #f88; }
+</style>
+</head>
+<body>
+<div id="stage"><iframe src="/static/grid.html"></iframe></div>
+<div id="bar">
+  <label>wall <input id="wall" list="walls" placeholder="wall" autocomplete="off"></label>
+  <datalist id="walls"></datalist>
+  <label>angle° <input id="angle" type="number" step="0.5" placeholder="optional"></label>
+  <button id="reset">Reset</button>
+  <button id="save" class="primary">Save</button>
+  <span id="msg">drag a handle, or 1-4 + arrows (shift = 10px)</span>
+</div>
+<script src="/static/warp.js"></script>
+<script>
+  const stage = document.getElementById("stage");
+  const msg = document.getElementById("msg");
+  const wallInput = document.getElementById("wall");
+  const angleInput = document.getElementById("angle");
+  const LABELS = ["TL", "TR", "BR", "BL"];
+  let corners = UNIT_CORNERS.map((p) => p.slice());
+  let walls = {};
+  let selected = 0;
+
+  const handles = LABELS.map((label, i) => {
+    const el = document.createElement("div");
+    el.className = "handle";
+    el.textContent = label;
+    document.body.appendChild(el);
+    el.addEventListener("pointerdown", (ev) => {
+      el.setPointerCapture(ev.pointerId);
+      select(i);
+    });
+    el.addEventListener("pointermove", (ev) => {
+      if (!el.hasPointerCapture(ev.pointerId)) return;
+      corners[i] = [ev.clientX / innerWidth, ev.clientY / innerHeight];
+      render(true);
+    });
+    return el;
+  });
+
+  function say(text, err) {
+    msg.textContent = text;
+    msg.className = err ? "err" : "";
+  }
+
+  function select(i) {
+    selected = i;
+    handles.forEach((h, k) => h.classList.toggle("sel", k === i));
+  }
+
+  // push at most one preview at a time so the projector keeps up with a fast drag
+  let sending = false, dirty = false;
+  async function push() {
+    if (sending) { dirty = true; return; }
+    sending = true;
+    try {
+      await fetch("/warp", { method: "POST", headers: { "content-type": "application/json" },
+                             body: JSON.stringify({ corners }) });
+    } catch (e) { say("display service unreachable", true); }
+    sending = false;
+    if (dirty) { dirty = false; push(); }
+  }
+
+  function render(preview) {
+    try { stage.style.transform = matrix3d(corners, innerWidth, innerHeight); } catch (e) { return; }
+    handles.forEach((h, i) => {
+      h.style.left = corners[i][0] * innerWidth + "px";
+      h.style.top = corners[i][1] * innerHeight + "px";
+    });
+    if (preview) push();
+  }
+
+  function load(name) {
+    const w = walls[name];
+    if (w) {
+      corners = w.corners.map((p) => p.slice());
+      angleInput.value = w.angle_deg ?? "";
+      say("loaded " + name);
+    }
+    render(true);
+  }
+
+  addEventListener("keydown", (ev) => {
+    if (ev.target.tagName === "INPUT") return;
+    if (ev.key >= "1" && ev.key <= "4") return select(+ev.key - 1);
+    const step = (ev.shiftKey ? 10 : 1);
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[ev.key];
+    if (!d) return;
+    ev.preventDefault();
+    corners[selected] = [corners[selected][0] + d[0] / innerWidth, corners[selected][1] + d[1] / innerHeight];
+    render(true);
+  });
+  addEventListener("resize", () => render(false));
+  wallInput.addEventListener("change", () => load(wallInput.value.trim()));
+
+  document.getElementById("reset").onclick = () => {
+    corners = UNIT_CORNERS.map((p) => p.slice());
+    render(true);
+    say("reset (not saved)");
+  };
+
+  document.getElementById("save").onclick = async () => {
+    const name = wallInput.value.trim();
+    if (!name) return say("enter a wall name first", true);
+    const body = { corners };
+    if (angleInput.value !== "") body.angle_deg = Number(angleInput.value);
+    const r = await fetch("/walls/" + encodeURIComponent(name), {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) return say((await r.json()).error, true);
+    walls[name] = { angle_deg: body.angle_deg ?? null, corners: corners.map((p) => p.slice()) };
+    say("saved " + name);
+  };
+
+  (async () => {
+    try {
+      walls = await (await fetch("/walls")).json();
+      document.getElementById("walls").innerHTML = Object.keys(walls).map((n) => `<option value="${n}">`).join("");
+      const wanted = new URLSearchParams(location.search).get("wall");
+      if (wanted) wallInput.value = wanted;
+      if (wanted && walls[wanted]) return (select(0), load(wanted));
+      corners = (await (await fetch("/warp")).json()).corners;
+    } catch (e) { say("display service unreachable", true); }
+    select(0);
+    render(false);
+  })();
+</script>
+</body>
+</html>

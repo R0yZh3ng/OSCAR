@@ -65,6 +65,55 @@ class AppTest(unittest.TestCase):
             self.assertEqual(load_walls(empty), {})
 
 
+class CalibrationTest(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.path = Path(self.dir.name) / "presets.json"
+        self.path.write_text(json.dumps({"rfid_tags": {"AB": "closet"}, "walls": WALLS}))
+        self.client = create_app(self.path).test_client()
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def test_page_served(self):
+        self.assertEqual(self.client.get("/calibrate?wall=wall").status_code, 200)
+
+    def test_walls_lists_corners_including_converted_legacy(self):
+        got = self.client.get("/walls").get_json()
+        self.assertEqual(got["wall"]["angle_deg"], 40)
+        self.assertEqual(len(got["closet"]["corners"]), 4)
+
+    def test_save_replaces_only_that_walls_warp(self):
+        corners = [[0, 0], [0.9, 0], [0.9, 1], [0, 1]]
+        r = self.client.post("/walls/closet", json={"corners": corners, "angle_deg": 141.5})
+        self.assertEqual(r.status_code, 200)
+        saved = json.loads(self.path.read_text())
+        self.assertEqual(saved["walls"]["closet"], {"angle_deg": 141.5, "warp": {"corners": corners}})
+        self.assertEqual(saved["walls"]["wall"], WALLS["wall"])
+        self.assertEqual(saved["rfid_tags"], {"AB": "closet"})
+
+    def test_save_without_angle_keeps_existing_angle(self):
+        self.client.post("/walls/wall", json={"corners": [[0, 0], [1, 0], [1, 1], [0, 1]]})
+        self.assertEqual(json.loads(self.path.read_text())["walls"]["wall"]["angle_deg"], 40)
+
+    def test_saved_wall_is_selectable_without_restart(self):
+        self.client.post("/walls/attic", json={"corners": [[0, 0], [1, 0], [1, 1], [0, 1]]})
+        self.assertEqual(self.client.post("/warp", json={"wall": "attic"}).status_code, 200)
+
+    def test_save_creates_missing_presets_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "presets.json"
+            client = create_app(path).test_client()
+            client.post("/walls/wall", json={"corners": [[0, 0], [1, 0], [1, 1], [0, 1]]})
+            self.assertIn("wall", json.loads(path.read_text())["walls"])
+
+    def test_save_rejects_bad_input_and_writes_nothing(self):
+        before = self.path.read_text()
+        for body in ({"corners": [[0, 0]]}, {"corners": "x"}, {}, {"corners": [[0, 0], [1, 0], [1, 1], [0, 1]], "angle_deg": "a"}):
+            self.assertEqual(self.client.post("/walls/wall", json=body).status_code, 400)
+        self.assertEqual(self.path.read_text(), before)
+
+
 class WarpStateTest(unittest.TestCase):
     def test_wait_returns_after_set(self):
         state = WarpState(WALLS)
