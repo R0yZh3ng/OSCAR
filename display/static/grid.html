@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCAR test grid</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; }
+  svg { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<svg viewBox="0 0 160 90" preserveAspectRatio="none">
+  <defs>
+    <pattern id="g" width="10" height="10" patternUnits="userSpaceOnUse">
+      <path d="M10 0H0V10" fill="none" stroke="#4a4a4a" stroke-width="0.2"/>
+    </pattern>
+  </defs>
+  <rect width="160" height="90" fill="url(#g)"/>
+  <path d="M0 0L160 90M160 0L0 90" stroke="#e0c040" stroke-width="0.4"/>
+  <rect x="0.5" y="0.5" width="159" height="89" fill="none" stroke="#fff" stroke-width="1"/>
+  <circle cx="80" cy="45" r="20" fill="none" stroke="#6cf" stroke-width="0.5"/>
+  <text x="5" y="10" fill="#f66" font-size="6" font-family="sans-serif">TL</text>
+  <text x="148" y="10" fill="#f66" font-size="6" font-family="sans-serif">TR</text>
+  <text x="148" y="87" fill="#f66" font-size="6" font-family="sans-serif">BR</text>
+  <text x="5" y="87" fill="#f66" font-size="6" font-family="sans-serif">BL</text>
+</svg>
+</body>
+</html>

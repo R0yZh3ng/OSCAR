@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSCAR stage</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #stage { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; transform-origin: 0 0; }
+  #stage iframe { width: 100%; height: 100%; border: 0; background: #000; }
+</style>
+</head>
+<body>
+<div id="stage"><iframe id="page"></iframe></div>
+<script src="/static/warp.js"></script>
+<script>
+  const stage = document.getElementById("stage");
+  const target = new URLSearchParams(location.search).get("u");
+  if (target) document.getElementById("page").src = target;
+
+  let corners = UNIT_CORNERS;
+  function apply() {
+    try {
+      stage.style.transform = matrix3d(corners, innerWidth, innerHeight);
+    } catch (e) {
+      console.error("bad corners, leaving transform as is", e);
+    }
+  }
+  addEventListener("resize", apply);
+  apply();
+
+  // EventSource reconnects by itself if the display service restarts
+  new EventSource("/warp/stream").onmessage = (ev) => {
+    corners = JSON.parse(ev.data).corners;
+    apply();
+  };
+</script>
+</body>
+</html>
