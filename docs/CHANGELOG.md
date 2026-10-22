@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-10-22
+
+### Added
+- **Per-wall projection warp** (`docs/PROJECTION_PLAN.md` steps 1-3, plus wrapping):
+  - `display/warp.py`: 4-point homography (pure Python), `matrix3d` CSS output, legacy
+    `rotateX/rotateY/perspective` conversion to corners. `tests/test_warp.py` (13).
+  - `display/app.py` (Flask, port 5000): `/stage?u=` wrapper page, `GET`/`POST /warp`, SSE
+    `/warp/stream` so every open tab re-warps live, `/walls` listing, `POST /walls/<name>` to
+    save one wall's corners (and optional `angle_deg`) into `config/presets.json`. Static:
+    `warp.js` (mirror of the Python math, checked to match), `stage.html`, `grid.html` test
+    pattern, `calibrate.html` (draggable corner handles, arrow-key nudge, save).
+  - `scripts/calibrate.py <wall>`: aims at a wall and prints the calibration URL.
+  - `TabSwitcher(stage=...)` opens pages inside `/stage` and matches tabs by their inner URL, so
+    hash routes still work; `scripts/routine.py` uses it by default (`--no-warp` to skip).
+- Tests: 63 total (was 29), all passing.
+
+### Fixed
+- `POST /warp` with invalid JSON (e.g. a stray character after the body) returned a misleading
+  "unknown wall None"; it now returns a 400 explaining the expected body.
+
+### Verified / not verified
+- Verified by hand in a browser: `/stage` warps a page and a `curl` to `/warp` re-warps it live.
+- Not yet tried: the calibration page, the wrapped tag URLs, anything on the Pi or projector.
+  `config/presets.json` is still empty, so no wall is calibrated.
+
 ## 2026-10-21
 
 ### Planned (docs only, no code)

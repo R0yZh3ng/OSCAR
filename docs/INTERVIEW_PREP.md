@@ -4,7 +4,7 @@ Living document. **Update it at the end of every working session** (see "Session
 bottom, and fix anything above that changed). Facts here come from the repo; anything not yet
 verified on hardware is marked so you never claim more than is true.
 
-Last updated: 2026-10-21.
+Last updated: 2026-10-22.
 
 ---
 
@@ -43,10 +43,10 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Projector power | **Researched; HDMI approach tested and failed; IR blaster planned, parts not bought** |
 | Keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data yet |
 | Stepper turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs. Printed-base plan written (`TURNTABLE_PLAN.md`), nothing printed yet |
-| Per-wall image warp | **Planned only** (`PROJECTION_PLAN.md`): matrix3d corner pinning; no code yet |
+| Per-wall image warp (`display/warp.py`, `display/app.py`, `/stage`, `/calibrate`) | **Built; math and server unit-tested (30 tests). `/stage` warp + live `/warp` updates confirmed in a browser on the laptop. Calibration page and tag-URL wrapping are tested by unit tests only; nothing tried on the Pi or projector yet** |
 | Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); Bambu printer now in hand, no MQTT link built |
 
-Total tests: 28, all passing (`python -m unittest discover -s tests`).
+Total tests: 63, all passing (`python -m unittest discover -s tests`).
 
 ---
 
@@ -123,6 +123,9 @@ Pi (always on) <-- RFID taps, sensors
 - **Dependency injection:** `TabSwitcher(http=...)` takes the HTTP function, so tests use a fake
   Chromium (5 tests).
 - **Limits:** memory (2-3 tabs max on 2 GB), stale background tabs (refresh timer is a later step).
+- **Warp wrapper (2026-10-22):** `TabSwitcher(stage=...)` opens pages as `/stage?u=<encoded url>`. A
+  wrapped tab's own URL is always `/stage`, so matching unwraps it and compares the inner URL; this
+  keeps hash routes (`#/year`) distinguishable. See 4.9.
 
 ### 4.3 RFID, LCD, buzzer (`hardware/`)
 - RC522 over SPI via `mfrc522`; `wait_for_scan` polls with a cooldown to debounce re-reads.
@@ -176,7 +179,24 @@ Pi (always on) <-- RFID taps, sensors
 - **Plan:** IR blaster. A VS1838B receiver learns the remote's power code once; a 940 nm IR LED
   driven by a transistor on a GPIO pin replays it (`gpio-ir` overlays + `ir-ctl`). Not built.
 
-### 4.8 Not built yet (designed)
+### 4.8 Per-wall image warp (`display/warp.py`, `display/app.py`, `display/static/`)
+- **Problem:** a projector aimed off-perpendicular at a wall gives a trapezoid. Each aim point
+  needs a pre-distortion so the page lands as a clean rectangle.
+- **Approach:** a 4-corner homography. `warp.homography` solves the 8x8 linear system (DLT) by
+  Gaussian elimination in pure Python; `matrix3d` turns it into the CSS transform for a full-screen
+  wrapper (`/stage`) that holds the real page in an iframe. Because the wrapper warps *any* page, it
+  works for every Chromium tab without changing them. JS (`warp.js`) mirrors the Python; checked
+  that both produce the same matrix for the same corners.
+- **Live updates:** each wrapper subscribes to a Server-Sent Events stream (`/warp/stream`), so
+  one `POST /warp` re-warps every open tab at once. SSE over socket.io: no client library on the Pi.
+- **Calibration:** `/calibrate` shows the test grid with four draggable handles (pointer events, so
+  it works from a phone) and arrow-key nudging; the projector previews live; Save writes only that
+  wall's block into `config/presets.json` atomically. Old `rotateX/rotateY` presets still load,
+  converted to corners.
+- **Honest limit:** one homography fixes a flat wall only; a curved or seamed surface needs a mesh
+  warp. Warping also costs resolution at the edges, and projected black is never fully dark.
+
+### 4.9 Not built yet (designed)
 - **Keyword model:** log-mel spectrogram of a ~1 s window, small depthwise-separable CNN, softmax
   over `oscar, wall, closet, schedule, hide, sleep` + background; trained off the Pi in TensorFlow,
   exported int8 TFLite, threshold + debounce at inference. Chosen over a paid wake-word engine to
@@ -201,6 +221,7 @@ Pi (always on) <-- RFID taps, sensors
 | Power button pulse + SSH unlock | WoL; typing the password via a fake keyboard | WoL fails on Wi-Fi sleep; no password stored on the Pi | Needs wiring; polkit risk |
 | Self-trained keyword model | Picovoice or cloud STT | No licence, no cloud audio, owned data | Time to collect data and iterate |
 | Inject dependencies (http, ping, clock) | Mock with patch | Pure-Python tests on any laptop, no hardware | Slightly more verbose signatures |
+| Corner-pin homography on a wrapper page | Per-page CSS rotate classes; projector keystone only; WebGL mesh | Exact for a flat wall, works on any tab, calibrated by dragging four corners | Iframe wrapper; resolution loss; flat surfaces only |
 | Wall mode via CSS `zoom` and theme class | Separate wall page | One codebase, phone view unchanged, tunable by URL | `zoom` is a Chromium-ism (fine for a kiosk) |
 
 ---
@@ -224,6 +245,10 @@ Pi (always on) <-- RFID taps, sensors
 6. **Locked keyring prompt on boot.** Chromium wanted the GNOME keyring on an auto-login Pi.
    `--password-store=basic` removes it, which is fine for a kiosk showing only local pages.
 7. **The 4 am day boundary.** Late-night habits shouldn't count for "tomorrow".
+8. **Tabs that all look the same.** Wrapping pages in `/stage` made every tab's URL `/stage?...`,
+   which broke the earlier hash-route matching. Fix: compare the unwrapped inner URL; a test covers
+   the `#/year` case. Also a stray `.` after a `curl` body gave a misleading "unknown wall None"
+   error because invalid JSON was silently treated as empty; now a clear 400.
 
 ---
 
@@ -233,7 +258,7 @@ Pi (always on) <-- RFID taps, sensors
   Wi-Fi down). RFID, display and tracker stay up without the PC.
 - **Separation of concerns:** pure logic (`progression.py`, `stats.py`, `actions.py`) has no Flask
   or hardware imports; hardware sits behind `hardware/*`.
-- **Testability:** dependency injection and fake clocks; 28 tests run on any laptop. Honest limit:
+- **Testability:** dependency injection and fake clocks; 63 tests run on any laptop. Honest limit:
   hardware paths (GPIO, DevTools against real Chromium, iPhone) are verified by hand.
 - **Security and privacy:** no stored passwords, a mic that defaults to off and can be gated, label
   validation against path traversal, LAN-only by default, no public tunnels for an always-on mic.
@@ -274,11 +299,11 @@ Pi (always on) <-- RFID taps, sensors
 
 - Hardware: Raspberry Pi 4B (2 GB), RC522 RFID, micro servo (from the kit), LCD1602, buzzers, ultrasonic ranger,
   starter kit parts; WSX "SGD SX8" projector (1080p preferred); iPhone 12 as a sensor; Linux desktop.
-- Ports: tracker 5001, sensor server 5002, Chromium DevTools 9222.
+- Ports: display/warp 5000, tracker 5001, sensor server 5002, Chromium DevTools 9222.
 - Audio: 16 kHz mono int16, ~100 ms chunks (1600 samples), 1 s keyword clips, 6 keywords + background.
 - Habit strength decay `0.5**(1/9)`; XP 10/20/35; streak bonus cap +50% at 30 days; perfect day +25%.
 - Wall theme zoom 1.8x; tab switching via DevTools `/json/list` and `/json/activate/<id>`.
-- Tests: 28 (tracker 16, tabs 5, PC control 4, sensor 3).
+- Tests: 63 (tracker 16, warp 13, display app 17, tabs 10, PC control 4, sensor 3).
 - Key docs: `PLAN.md` (v1 design), `PI_HUB_PLAN.md` (current architecture), `PHONE_SENSOR_PLAN.md`,
   `HABIT_TRACKER_PLAN.md`, `BAMBU_PLAN.md`, `USER_STORIES.md` (US-1..22), `CHANGELOG.md`.
 
@@ -295,6 +320,15 @@ Pi (always on) <-- RFID taps, sensors
 ---
 
 ## Session log
+
+### 2026-10-22
+- Built the projection warp: homography math + tests, `/stage` wrapper with SSE live updates,
+  calibration page with draggable corners and save, `scripts/calibrate.py`, and wrapping of RFID tag
+  URLs (`routine.py`, `--no-warp` to skip) with `tabs.py` matching on the inner URL. Four commits.
+- Verified: unit tests (63 pass); `/stage` warping and live `curl` updates confirmed by hand in a
+  browser. Not verified: the calibration page in a browser, anything on the Pi or the real projector.
+- Next: try `/calibrate` by hand, put it on the Pi and calibrate one wall against the real projector,
+  then the stepper turntable and router wiring.
 
 ### 2026-10-21
 - Planning only, no code. Printer arrived; wrote the turntable-base plan (`TURNTABLE_PLAN.md`) and

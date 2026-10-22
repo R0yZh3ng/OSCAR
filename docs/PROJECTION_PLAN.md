@@ -1,6 +1,6 @@
 # OSCAR Projection: Image Transformation Per Wall
 
-Status: plan (2026-10-21). Nothing built yet. Supersedes the "one CSS class per wall" idea in
+Status: steps 1-3 built (2026-10-22), unit-tested; `/stage` warp confirmed in a browser. Not yet tried on the Pi or projector, no wall calibrated. Supersedes the "one CSS class per wall" idea in
 `PLAN.md`, because the display is now a set of Chromium tabs switched by RFID (`display/tabs.py`),
 not one page the daemon controls.
 
