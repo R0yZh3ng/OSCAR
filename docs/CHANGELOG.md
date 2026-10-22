@@ -9,6 +9,9 @@
 - `docs/PROJECTION_PLAN.md`: per-wall image transformation. 4-corner `matrix3d` homography on a
   `/stage` wrapper page so it applies to every Chromium tab, corners stored per wall in
   `presets.json`, drag-the-corners calibration, live updates when the servo moves.
+- Turntable motor changed from servo to the kit's stepper (28BYJ-48 + ULN2003): plan now covers
+  homing switch, step-skip and backlash risks, and a NEMA 17 upgrade path. `servo_angle` in the
+  preset schema becomes `angle_deg`.
 - Cross-references added in `PLAN.md`, `BAMBU_PLAN.md` and `CLAUDE.md`.
 
 ## 2026-10-19

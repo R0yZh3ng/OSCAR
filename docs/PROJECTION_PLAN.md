@@ -12,7 +12,7 @@ needs a pre-distortion applied to the page so it lands as a clean rectangle on t
 
 Constraints that shape the design:
 - The content is tracker pages in separate Chromium tabs, switched by tag. The warp must apply to
-  **every** tab, and must change when the servo moves, without reloading anything.
+  **every** tab, and must change when the turntable moves, without reloading anything.
 - Keep the router/hardware split: warp values live in `config/presets.json`, the display side only
   reads them. No hardware needed to test the math.
 - The projector is low quality and the room bright (see the wall theme). Warping costs resolution
@@ -44,7 +44,7 @@ Fallback if a tag ever points at a site that refuses framing (X-Frame-Options): 
 `/json` HTTP endpoints, so this adds a websocket client dependency; defer until needed.
 
 **Live updates.** The wrapper subscribes to `GET /warp` events (Server-Sent Events or a socket)
-for the currently active wall; every tab re-warps instantly when the servo moves, so inactive tabs
+for the currently active wall; every tab re-warps instantly when the turntable moves, so inactive tabs
 are already correct when switched to.
 
 ### 2. Math
@@ -64,31 +64,32 @@ Extends `config/presets.json` (the `warp` block becomes corners instead of rotat
 
 ```
 "walls": {
-  "wall":   { "servo_angle": 40,
+  "wall":   { "angle_deg": 40,
               "warp": { "corners": [[0.04,0.02],[0.97,0.06],[0.96,0.95],[0.02,0.91]] } },
-  "closet": { "servo_angle": 140,
+  "closet": { "angle_deg": 140,
               "warp": { "corners": [ ... ] } } }
 ```
 
-Corners are normalized 0..1 of the projector output, in order TL, TR, BR, BL, so the preset does
+`angle_deg` is the turntable angle from the home switch (`TURNTABLE_PLAN.md`); the stepper
+replaces the old `servo_angle`, and `hardware/turntable.py` converts it to steps. Corners are normalized 0..1 of the projector output, in order TL, TR, BR, BL, so the preset does
 not depend on the screen's pixel size. Old `rotateX/rotateY/perspective` keys stay readable as a
 migration path (`warp.py` converts them to the same corner form) so nothing already tuned is lost.
 
 ### 4. Calibration (`scripts/calibrate.py` + `/calibrate` page)
 
-1. Move the servo to the wall's angle; project a grid test pattern (`/calibrate?wall=closet`) with
+1. Move the turntable to the wall's angle; project a grid test pattern (`/calibrate?wall=closet`) with
    a drawn border and diagonals so error is visible.
 2. Drag the four corner handles (mouse or phone over the LAN) until the border matches the real
    wall rectangle (or tape marks). Keys nudge by 1 px; the page previews live by sending the
    corners to `/warp`.
 3. Save to `config/presets.json` (writes only that wall's block).
 
-Also record the servo angle in the same step, so one tool tunes aim and warp together; they are
+Also record the angle in the same step, so one tool tunes aim and warp together; they are
 different pieces of state (aim vs mode, see `CLAUDE.md`) but for one physical wall they are tuned together.
 
 ### 5. Beyond two fixed presets (later)
 
-Once the turntable exists, the distortion is a smooth function of servo angle. Interpolate the four
+Once the turntable exists, the distortion is a smooth function of turntable angle. Interpolate the four
 corners between calibrated angles (linear in angle is enough over a small range) so intermediate
 aim points work without a new calibration. A model-based version (homography from the projector's
 rotation about a known axis) is possible but needs the wall geometry; calibration by hand wins at
@@ -106,7 +107,7 @@ two walls.
    wall to prove the pipeline.
 5. After the turntable is printed (`TURNTABLE_PLAN.md`): calibrate both walls with the real
    servo angles. Save to `presets.json`.
-6. Wire the router: "wall"/"closet" and RFID mode change the servo and push the new corners.
+6. Wire the router: "wall"/"closet" and RFID mode move the turntable and push the new corners.
    (Requires the router from `PLAN.md`; until then `calibrate.py` can trigger it.)
 7. Optional: angle interpolation; DevTools-injection fallback.
 
@@ -127,7 +128,7 @@ two walls.
 ## Done when
 
 - Tapping a tag shows the tracker as a clean rectangle on the wall, in the tab it was loaded in.
-- Switching aim (servo move) changes the warp within about a second on all tabs.
+- Switching aim (turntable move) changes the warp within about a second on all tabs.
 - Both walls are calibrated from the calibration page and survive a Pi reboot (stored in git-tracked
   `presets.json`).
 - `tests/test_warp.py` passes without a browser or hardware.
