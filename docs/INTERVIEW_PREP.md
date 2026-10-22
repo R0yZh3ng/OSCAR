@@ -4,7 +4,7 @@ Living document. **Update it at the end of every working session** (see "Session
 bottom, and fix anything above that changed). Facts here come from the repo; anything not yet
 verified on hardware is marked so you never claim more than is true.
 
-Last updated: 2026-10-19.
+Last updated: 2026-10-21.
 
 ---
 
@@ -42,8 +42,9 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | PC wake + SSH unlock (`pc/control.py`, `hardware/pc_power.py`) | **Built, logic unit-tested (4 tests); not wired or run on hardware** |
 | Projector power | **Researched; HDMI approach tested and failed; IR blaster planned, parts not bought** |
 | Keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data yet |
-| Servo turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs |
-| Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); printer ordered, not in hand |
+| Servo turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs. Printed-base plan written (`TURNTABLE_PLAN.md`), nothing printed yet |
+| Per-wall image warp | **Planned only** (`PROJECTION_PLAN.md`): matrix3d corner pinning; no code yet |
+| Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); Bambu printer now in hand, no MQTT link built |
 
 Total tests: 28, all passing (`python -m unittest discover -s tests`).
 
@@ -294,6 +295,13 @@ Pi (always on) <-- RFID taps, sensors
 ---
 
 ## Session log
+
+### 2026-10-21
+- Planning only, no code. Printer arrived; wrote the turntable-base plan (`TURNTABLE_PLAN.md`) and
+  the per-wall projection warp plan (`PROJECTION_PLAN.md`).
+- Design decision to remember: the old plan warped one page with CSS classes, but tab switching
+  means many pages, so the warp moves to a wrapper page applying a 4-corner homography (`matrix3d`)
+  that every tab inherits. Calibration is dragging the four corners on the real wall.
 
 ### 2026-10-19
 - Chose PC-compute / Pi-hub architecture; documented it.

@@ -10,6 +10,8 @@ OSCAR is a voice/RFID-controlled wall projector assistant running on a Raspberry
 
 **Interview prep (standing rule):** the user may need to discuss this project in interviews. At the end of every working session, update `docs/INTERVIEW_PREP.md` (status table, design decisions, problems solved, talking points, session log) and add the day's entry to `docs/CHANGELOG.md`. Keep "built / tested / planned" claims honest.
 
+**Physical/projection plans (2026-10-21):** `docs/TURNTABLE_PLAN.md` (3D-printed servo turntable base on the Bambu A1) and `docs/PROJECTION_PLAN.md` (per-wall `matrix3d` corner warp via a `/stage` wrapper page; replaces PLAN.md's CSS-class warp).
+
 The wake-word approach is a self-trained TFLite keyword model (not Picovoice); PLAN.md wins on any conflict with USER_STORIES.md.
 
 ## Architecture (from PLAN.md)

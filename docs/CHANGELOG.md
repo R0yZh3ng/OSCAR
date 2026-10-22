@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-21
+
+### Planned (docs only, no code)
+- `docs/TURNTABLE_PLAN.md`: 3D-printed base for the projector rotation platform (Bambu A1 now in
+  hand): lazy-susan bearing + printed plates, PETG, printed travel stops, measurements needed,
+  print and test steps.
+- `docs/PROJECTION_PLAN.md`: per-wall image transformation. 4-corner `matrix3d` homography on a
+  `/stage` wrapper page so it applies to every Chromium tab, corners stored per wall in
+  `presets.json`, drag-the-corners calibration, live updates when the servo moves.
+- Cross-references added in `PLAN.md`, `BAMBU_PLAN.md` and `CLAUDE.md`.
+
 ## 2026-10-19
 
 ### Architecture
