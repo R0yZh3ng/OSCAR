@@ -1,0 +1,18 @@
+[Unit]
+Description=OSCAR RFID tag -> tab switching (scripts/routine.py)
+After=oscar-tracker.service oscar-display.service oscar-kiosk.service
+Wants=oscar-tracker.service oscar-display.service oscar-kiosk.service
+PartOf=oscar.target
+
+[Service]
+WorkingDirectory=@ROOT@
+# Ordering only means "started", so wait until the three things routine.py talks to answer
+ExecStartPre=/usr/bin/curl -fs -o /dev/null --retry 60 --retry-delay 1 --retry-connrefused http://127.0.0.1:5001/api/state
+ExecStartPre=/usr/bin/curl -fs -o /dev/null --retry 60 --retry-delay 1 --retry-connrefused http://127.0.0.1:5000/warp
+ExecStartPre=/usr/bin/curl -fs -o /dev/null --retry 60 --retry-delay 1 --retry-connrefused http://127.0.0.1:9222/json/version
+ExecStart=@ROOT@/venv/bin/python scripts/routine.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=oscar.target

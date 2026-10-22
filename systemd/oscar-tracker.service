@@ -1,0 +1,12 @@
+[Unit]
+Description=OSCAR habit tracker (port 5001)
+PartOf=oscar.target
+
+[Service]
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/venv/bin/python -m tracker.app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=oscar.target

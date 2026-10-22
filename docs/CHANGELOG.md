@@ -16,6 +16,11 @@
     hash routes still work; `scripts/routine.py` uses it by default (`--no-warp` to skip).
 - Tests: 63 total (was 29), all passing.
 
+- **Start everything at boot:** `systemd/` user units (`oscar-tracker`, `oscar-display`,
+  `oscar-kiosk`, `oscar-rfid`) grouped under `oscar.target`, and `scripts/install_services.sh` to
+  install and enable them. The RFID unit waits for the tracker, display app and Chromium to answer
+  before starting. Units pass `systemd-analyze verify`; **not yet installed or run on the Pi**.
+
 ### Fixed
 - `POST /warp` with invalid JSON (e.g. a stray character after the body) returned a misleading
   "unknown wall None"; it now returns a 400 explaining the expected body.

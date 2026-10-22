@@ -327,6 +327,8 @@ Pi (always on) <-- RFID taps, sensors
   URLs (`routine.py`, `--no-warp` to skip) with `tabs.py` matching on the inner URL. Four commits.
 - Verified: unit tests (63 pass); `/stage` warping and live `curl` updates confirmed by hand in a
   browser. Not verified: the calibration page in a browser, anything on the Pi or the real projector.
+- Added systemd user units + installer so tracker, display, Chromium kiosk and RFID start together at
+  boot (`oscar.target`). Syntax-verified only; untested on the Pi.
 - Next: try `/calibrate` by hand, put it on the Pi and calibrate one wall against the real projector,
   then the stepper turntable and router wiring.
 

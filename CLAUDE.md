@@ -37,7 +37,7 @@ Two processes on the Pi plus shared JSON config. Every input source feeds one co
 
 ## Environment
 
-Target is Raspberry Pi OS with the `seeed-voicecard` driver (ReSpeaker 2-Mic HAT), SPI enabled for the RC522, and `pigpiod` enabled. Hardware modules (`pigpio`, `mfrc522`, `spidev`, `pixel_ring`) will not import or work on a dev laptop, so keep hardware access behind `hardware/*` so the router and display can be tested without it. Planned `systemd` units: `oscar-control.service`, `oscar-display.service`.
+Target is Raspberry Pi OS with the `seeed-voicecard` driver (ReSpeaker 2-Mic HAT), SPI enabled for the RC522, and `pigpiod` enabled. Hardware modules (`pigpio`, `mfrc522`, `spidev`, `pixel_ring`) will not import or work on a dev laptop, so keep hardware access behind `hardware/*` so the router and display can be tested without it. `systemd/` holds user units for tracker, display, kiosk and RFID under `oscar.target`; `scripts/install_services.sh` installs them (untested on the Pi). The control daemon's unit comes with the daemon.
 
 Install: `pip install -r requirements.txt` (training-side `tensorflow` is intentionally excluded).
 

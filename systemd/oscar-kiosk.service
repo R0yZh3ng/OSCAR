@@ -1,0 +1,14 @@
+[Unit]
+Description=OSCAR Chromium kiosk (remote debugging on 9222)
+PartOf=oscar.target
+
+[Service]
+# Needs the desktop session; if it isn't up yet the launch fails and is retried
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=DISPLAY=:0
+ExecStart=@ROOT@/scripts/start_kiosk.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=oscar.target

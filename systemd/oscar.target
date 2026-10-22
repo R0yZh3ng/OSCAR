@@ -1,0 +1,6 @@
+[Unit]
+Description=OSCAR (tracker, display, kiosk, RFID)
+Wants=oscar-tracker.service oscar-display.service oscar-kiosk.service oscar-rfid.service
+
+[Install]
+WantedBy=default.target
