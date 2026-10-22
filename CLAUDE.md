@@ -35,6 +35,10 @@ Two processes on the Pi plus shared JSON config. Every input source feeds one co
 - `config/schedule.json` (not yet created): `{title, time, category}` events; work mode shows only `category == "work"`.
 - `scripts/calibrate.py` live-tunes servo angle and warp and saves to presets.json. `scripts/scan_uid.py` prints an RFID tag UID to copy into `rfid_tags`.
 
+## README
+
+`README.md` is the public overview (status, per-part descriptions, boot and calibration commands, ports). Keep its status table and commands in step with the code when features land.
+
 ## Environment
 
 Target is Raspberry Pi OS with the `seeed-voicecard` driver (ReSpeaker 2-Mic HAT), SPI enabled for the RC522, and `pigpiod` enabled. Hardware modules (`pigpio`, `mfrc522`, `spidev`, `pixel_ring`) will not import or work on a dev laptop, so keep hardware access behind `hardware/*` so the router and display can be tested without it. `systemd/` holds user units for tracker, display, kiosk and RFID under `oscar.target`; `scripts/install_services.sh` installs them (untested on the Pi). The control daemon's unit comes with the daemon.

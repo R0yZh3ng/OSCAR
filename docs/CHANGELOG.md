@@ -21,6 +21,9 @@
   install and enable them. The RFID unit waits for the tracker, display app and Chromium to answer
   before starting. Units pass `systemd-analyze verify`; **not yet installed or run on the Pi**.
 
+- `README.md` (new): project description, status table, what each part does, boot-at-startup
+  commands, running by hand, calibration steps, ports, doc index.
+
 ### Fixed
 - `POST /warp` with invalid JSON (e.g. a stray character after the body) returned a misleading
   "unknown wall None"; it now returns a 400 explaining the expected body.

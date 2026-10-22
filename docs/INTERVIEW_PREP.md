@@ -44,6 +44,7 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data yet |
 | Stepper turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs. Printed-base plan written (`TURNTABLE_PLAN.md`), nothing printed yet |
 | Per-wall image warp (`display/warp.py`, `display/app.py`, `/stage`, `/calibrate`) | **Built; math and server unit-tested (30 tests). `/stage` warp + live `/warp` updates confirmed in a browser on the laptop. Calibration page and tag-URL wrapping are tested by unit tests only; nothing tried on the Pi or projector yet** |
+| Start-at-boot (`systemd/` user units, `scripts/install_services.sh`) | **Written and syntax-checked (`systemd-analyze verify`); not yet installed or run on the Pi** |
 | Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); Bambu printer now in hand, no MQTT link built |
 
 Total tests: 63, all passing (`python -m unittest discover -s tests`).
@@ -196,7 +197,21 @@ Pi (always on) <-- RFID taps, sensors
 - **Honest limit:** one homography fixes a flat wall only; a curved or seamed surface needs a mesh
   warp. Warping also costs resolution at the edges, and projected black is never fully dark.
 
-### 4.9 Not built yet (designed)
+### 4.9 Starting everything at boot (`systemd/`, `scripts/install_services.sh`)
+- **Problem:** four separate processes (tracker, display app, Chromium kiosk, RFID loop), each
+  needing its own terminal. A wall appliance has to come up by itself after a power cut.
+- **Approach:** systemd *user* units grouped under one `oscar.target`, so one command starts, stops
+  or restarts the lot. `loginctl enable-linger` makes them start at boot before anyone logs in. An
+  installer fills the repo path into the unit templates (`@ROOT@`) so nothing is hard-coded.
+- **Ordering problem:** `After=` only means "started", not "ready". The RFID unit therefore runs
+  `curl --retry` pre-checks against the tracker, display app and Chromium's debugging port before
+  `routine.py` launches; the services themselves use `Restart=always` so a crash heals.
+- **Honest limit:** the kiosk needs the desktop session, which systemd can't order against, so it
+  simply retries until the display exists. Only syntax-verified; nothing run on the Pi yet.
+- **`README.md`** (added 2026-10-22) documents status, what each part does, these commands, running
+  by hand, calibration and ports. It is the first thing an interviewer opening the repo will see.
+
+### 4.10 Not built yet (designed)
 - **Keyword model:** log-mel spectrogram of a ~1 s window, small depthwise-separable CNN, softmax
   over `oscar, wall, closet, schedule, hide, sleep` + background; trained off the Pi in TensorFlow,
   exported int8 TFLite, threshold + debounce at inference. Chosen over a paid wake-word engine to
@@ -221,6 +236,7 @@ Pi (always on) <-- RFID taps, sensors
 | Power button pulse + SSH unlock | WoL; typing the password via a fake keyboard | WoL fails on Wi-Fi sleep; no password stored on the Pi | Needs wiring; polkit risk |
 | Self-trained keyword model | Picovoice or cloud STT | No licence, no cloud audio, owned data | Time to collect data and iterate |
 | Inject dependencies (http, ping, clock) | Mock with patch | Pure-Python tests on any laptop, no hardware | Slightly more verbose signatures |
+| User-level systemd units under one target | A shell script that launches everything; cron `@reboot`; tmux | Restart on crash, boot ordering, one command to manage all, logs in the journal | Kiosk can't be ordered against the desktop, so it relies on retry |
 | Corner-pin homography on a wrapper page | Per-page CSS rotate classes; projector keystone only; WebGL mesh | Exact for a flat wall, works on any tab, calibrated by dragging four corners | Iframe wrapper; resolution loss; flat surfaces only |
 | Wall mode via CSS `zoom` and theme class | Separate wall page | One codebase, phone view unchanged, tunable by URL | `zoom` is a Chromium-ism (fine for a kiosk) |
 
@@ -312,6 +328,7 @@ Pi (always on) <-- RFID taps, sensors
 ## 10. Known limits and next steps (say these before they are asked)
 
 - Voice, router, servo and LEDs are designed but not built; the demo is RFID -> tracker on the wall.
+- The systemd units and the projection warp have not been run on the Pi or the real projector yet.
 - The PC wake, phone page and IR projector control are unverified on real hardware.
 - Chromium tab memory and stale tabs; no offline/PWA queue for the tracker yet.
 - Next: IR projector control, the router/state machine, keyword data collection via the phone page,
@@ -327,6 +344,7 @@ Pi (always on) <-- RFID taps, sensors
   URLs (`routine.py`, `--no-warp` to skip) with `tabs.py` matching on the inner URL. Four commits.
 - Verified: unit tests (63 pass); `/stage` warping and live `curl` updates confirmed by hand in a
   browser. Not verified: the calibration page in a browser, anything on the Pi or the real projector.
+- Wrote `README.md` (it did not exist): status, per-part descriptions, boot commands, calibration.
 - Added systemd user units + installer so tracker, display, Chromium kiosk and RFID start together at
   boot (`oscar.target`). Syntax-verified only; untested on the Pi.
 - Next: try `/calibrate` by hand, put it on the Pi and calibrate one wall against the real projector,
