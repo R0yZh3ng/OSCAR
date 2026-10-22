@@ -1,6 +1,7 @@
 # OSCAR x Bambu Lab A1 — Connection Pipeline
 
-Status: draft (planning day, 2026-10-18). Printer ordered, not yet in hand. Items marked **VERIFY**
+Status: draft (planning day, 2026-10-18). Printer in hand as of 2026-10-21; first use is printing the
+turntable base (`TURNTABLE_PLAN.md`). The MQTT link is still unbuilt. Items marked **VERIFY**
 depend on the A1's firmware and must be checked once it arrives.
 
 ## Goal

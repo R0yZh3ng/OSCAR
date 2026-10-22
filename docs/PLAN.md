@@ -31,6 +31,9 @@ whatever mode is active — they change the aim, not the content filter.
 
 ## Physical Build: Servo Turntable
 
+> Detailed 3D-printed base plan: `docs/TURNTABLE_PLAN.md`. Per-wall image warp (matrix3d corner pinning
+> across Chromium tabs, replacing the CSS-class idea below): `docs/PROJECTION_PLAN.md`.
+
 Recommended design (simplest to build and reason about in a weekend, works regardless of servo
 torque since the bearing — not the servo — carries the projector's weight):
 
