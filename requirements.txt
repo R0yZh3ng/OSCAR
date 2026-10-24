@@ -1,4 +1,6 @@
 #tflite-runtime
+anthropic
+faster-whisper
 numpy
 librosa
 sounddevice

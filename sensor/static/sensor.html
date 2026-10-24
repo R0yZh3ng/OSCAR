@@ -44,6 +44,13 @@
     <div id="err" class="muted" role="status"></div>
   </div>
 
+  <div class="card" id="assistCard" hidden>
+    <b>Assistant</b>
+    <span class="muted">Say "Oscar, ..." and it acts. Needs the server started with OSCAR_ASSISTANT=1.</span>
+    <button id="assistBtn">Start assistant</button>
+    <div id="assistOut" class="muted" style="white-space:pre-wrap"></div>
+  </div>
+
   <div class="card" id="streamCard" hidden>
     <b>Quality check</b>
     <span class="muted">Streams to a WAV on the Pi so you can listen back.</span>
@@ -66,7 +73,7 @@
 const $ = (id) => document.getElementById(id);
 const sock = io("/sensor", { reconnection: true, reconnectionDelay: 500, reconnectionDelayMax: 3000 });
 let cfg = null, ctx = null, stream = null, node = null, wakeLock = null;
-let micOn = false, streaming = false, grab = null;   // grab: {need, chunks, done}
+let micOn = false, streaming = false, listening = false, grab = null;   // grab: {need, chunks, done}
 
 sock.on("connect", () => { setConn(true); refreshCounts(); });
 sock.on("disconnect", () => { setConn(false); streaming = false; $("streamBtn").textContent = "Record stream to Pi"; });
@@ -101,7 +108,7 @@ $("start").onclick = async () => {
     ctx.createMediaStreamSource(stream).connect(node);
     node.port.onmessage = onPcm;
     await ctx.resume();
-    $("start").hidden = true; $("live").hidden = false; $("streamCard").hidden = false; $("recCard").hidden = false;
+    $("start").hidden = true; $("live").hidden = false; $("streamCard").hidden = false; $("assistCard").hidden = false; $("recCard").hidden = false;
     setMic(true);
     acquireWake();
     buildButtons(); refreshCounts();
@@ -115,6 +122,7 @@ function onPcm(e) {
   const { pcm, rms } = e.data;
   $("level").style.width = Math.min(100, Math.sqrt(rms) * 140) + "%";
   if (streaming) sock.emit("audio", pcm);
+  if (listening) sock.emit("listen_audio", pcm);
   if (grab) {
     grab.chunks.push(new Int16Array(pcm)); grab.have += pcm.byteLength / 2;
     if (grab.have >= grab.need) { const g = grab; grab = null; g.done(joinPcm(g.chunks, g.need)); }
@@ -125,6 +133,19 @@ function joinPcm(chunks, n) {
   for (const c of chunks) { const k = Math.min(c.length, n - o); out.set(c.subarray(0, k), o); o += k; if (o >= n) break; }
   return out;
 }
+
+// Assistant: stream the mic to the server's wake word + Claude pipeline; replies are shown and spoken.
+$("assistBtn").onclick = () => {
+  if (listening) { listening = false; sock.emit("listen_stop"); $("assistBtn").textContent = "Start assistant"; return; }
+  sock.emit("listen_start", (r) => {
+    if (!r.ok) { $("assistOut").textContent = r.error; return; }
+    listening = true; $("assistBtn").textContent = "Stop assistant"; $("assistOut").textContent = "listening for \"Oscar\"...";
+  });
+};
+sock.on("assistant_reply", (m) => {
+  $("assistOut").textContent = (m.heard ? "heard: " + m.heard + "\n" : "") + m.reply;
+  try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(m.reply)); } catch (e) {}
+});
 
 $("streamBtn").onclick = () => {
   if (!streaming) { streaming = true; sock.emit("stream_start"); $("streamBtn").textContent = "Stop and save"; $("streamOut").textContent = ""; }

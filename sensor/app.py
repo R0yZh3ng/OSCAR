@@ -1,5 +1,6 @@
 import json
 import os
+import queue
 import sys
 import time
 import wave
@@ -41,11 +42,13 @@ def safe_label(label, allowed):
     return label if label in allowed else None
 
 
-def create_app(data_dir=None):
+def create_app(data_dir=None, make_listener=None):
+    """make_listener(), if given, enables the assistant: it returns a fresh assistant.listener.Listener."""
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.config["DATA_DIR"] = data_dir or DATA_DIR
     socketio.init_app(app)
     streams = {}  # sid -> bytearray, the live "stream to WAV" test capture
+    listeners = {}  # sid -> (queue, worker) for the always-listening assistant
 
     @app.get("/")
     def index():
@@ -64,6 +67,43 @@ def create_app(data_dir=None):
     def on_disconnect():
         from flask import request
         streams.pop(request.sid, None)
+        listen_stop()
+
+    # Assistant: continuous audio -> Listener (VAD, Whisper, wake word, Claude) -> reply to the page.
+    @socketio.on("listen_start", namespace=NS)
+    def listen_start():
+        from flask import request
+        sid = request.sid
+        if make_listener is None:
+            return {"ok": False, "error": "assistant not enabled on the server"}
+        if sid in listeners:
+            return {"ok": True}
+        q = queue.Queue()
+        listeners[sid] = q
+
+        def work(listener=make_listener()):
+            while (pcm := q.get()) is not None:
+                try:
+                    for heard, reply in listener.feed(pcm):
+                        socketio.emit("assistant_reply", {"heard": heard, "reply": reply}, namespace=NS, to=sid)
+                except Exception as e:  # one bad utterance must not kill listening
+                    socketio.emit("assistant_reply", {"heard": "", "reply": "Error: %s" % e}, namespace=NS, to=sid)
+        socketio.start_background_task(work)
+        return {"ok": True}
+
+    @socketio.on("listen_audio", namespace=NS)
+    def listen_audio(chunk):
+        from flask import request
+        q = listeners.get(request.sid)
+        if q is not None:
+            q.put(bytes(chunk))
+
+    @socketio.on("listen_stop", namespace=NS)
+    def listen_stop():
+        from flask import request
+        q = listeners.pop(request.sid, None)
+        if q is not None:
+            q.put(None)
 
     # Step 2: raw stream -> one WAV, for judging phone-mic quality by ear.
     @socketio.on("stream_start", namespace=NS)
@@ -113,8 +153,19 @@ def create_app(data_dir=None):
     return app
 
 
+def assistant_listener_factory():
+    """Whisper + Claude, loaded once and shared; each connected page gets its own VAD state."""
+    from assistant.__main__ import build
+    from assistant.listener import Listener, whisper_transcriber
+    bot, transcribe = build(), whisper_transcriber()
+    return lambda: Listener(transcribe, bot.ask, on_heard=lambda t: print("heard:", t))
+
+
 def main():
-    app = create_app()
+    factory = None
+    if os.environ.get("OSCAR_ASSISTANT") == "1":
+        factory = assistant_listener_factory()
+    app = create_app(make_listener=factory)
     ssl = (CERT, KEY) if os.path.exists(CERT) and os.path.exists(KEY) else None
     if not ssl:
         print("WARNING: no TLS cert at %s; iOS Safari will refuse the mic over plain HTTP.\n"
