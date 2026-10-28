@@ -36,7 +36,7 @@ edited image re-run through image-to-3D, not true mesh editing.
 
 | Model | Origin | VRAM (reported) | Fit | Notes |
 |---|---|---|---|---|
-| **Hunyuan3D 2.1, shape only** | Tencent | ~10 GB shape, ~21 GB texture, ~29 GB both | Shape fits | **First spike.** Tencent community licence (excludes EU/UK/South Korea). A print only needs shape. Repo documents a `--low_vram_mode` flag in its Gradio app (**VERIFY** what it does). |
+| **Hunyuan3D 2.1, shape only** | Tencent | ~10 GB shape, ~21 GB texture, ~29 GB both | Shape fits | **First spike.** Source headers say Tencent Hunyuan **Non-Commercial** licence (the community licence also excludes EU/UK/South Korea); fine for a personal project, not for selling prints. A print only needs shape. Repo documents a `--low_vram_mode` flag in its Gradio app (**VERIFY** what it does). |
 | TRELLIS.2 | Microsoft, MIT | stated 24 GB minimum | Does not fit without offloading | Second test with CPU offload (30 GB RAM available). One blog reports a 16 GB 4070 working with offloading (**VERIFY**). Failure mode without offload is a CUDA OOM error, not damage. |
 | Hunyuan3D 2.0 | Tencent | ~6 GB shape, ~16 GB with texture | Fits | Older fallback. |
 | TRELLIS v1 | Microsoft | ~16 GB | Borderline | |
@@ -77,7 +77,7 @@ as an optional backend; default to local. Whisper (already open, `faster-whisper
 
 ## Build order
 
-1. **Hunyuan3D shape-only spike** in its own environment (`~/ai/`, outside the repo; Python 3.11,
+1. **Hunyuan3D shape-only spike** (environment, code and ~7.5 GB of weights are set up in `~/ai/`; **the run itself has not happened yet**) in its own environment (`~/ai/`, outside the repo; Python 3.11,
    PyTorch cu128, because the 5070 Ti is Blackwell and PyTorch 2.5/cu124 has no kernels for it,
    **VERIFY**). Record VRAM peak and seconds on this card. Output: a GLB from a test image.
 2. **Local assistant backend**: backend interface, Ollama/Qwen3 adapter, tool-call test set.
