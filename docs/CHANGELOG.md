@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-10-27
+
+### Added (earlier commits, documented today)
+- **Assistant** (`assistant/`): a tool-use loop over habit, page and PC tools. `agent.py` is the Claude
+  loop (`Assistant.ask(text)`, history reset after 5 min idle), `tools.py` the tool schemas and
+  handlers, `__main__.py` a typed REPL (`python -m assistant`). Input-agnostic, so voice, typed
+  and later RFID/gesture calls share it. (`64bb2be`)
+- **Wake word by transcript** (`assistant/wake.py`, `assistant/listener.py`): an energy VAD
+  (`Segmenter`) cuts audio into utterances, `faster-whisper` (CPU, int8) transcribes each, and
+  `split_wake` accepts "Oscar ..." / "hey Oscar ..." / "... Oscar", including common Whisper
+  mishearings. A bare "Oscar" arms the next utterance for 8 s. **No keyword model is trained.**
+  (`40635be`; `tests/test_assistant.py`)
+- **Phone mic -> assistant** (`sensor/app.py`, `sensor/static/sensor.html`): the page streams audio over
+  the `listen_*` socket events and speaks the reply. Enabled only with `OSCAR_ASSISTANT=1`.
+  (`d77de52`)
+- Dependencies installed into `venv/`: anthropic, faster-whisper, numpy, librosa, sounddevice,
+  flask, flask-socketio and the Pi hardware packages. Full suite: 80 tests, all passing.
+
+### Added (today)
+- `docs/LOCAL_AI_PLAN.md`: plan to replace the paid Meshy/OpenAI/Claude pieces with open models
+  that run on the PC: Hunyuan3D (image -> 3D), an open sketch->image model, and a Qwen3-class local
+  assistant model served through Ollama. Based on reading the public hackathon repo
+  `elijahzhao24/produhacks-2026` (LeGenesis).
+
+### Findings
+- **Not always listening at boot.** There is no unit for the sensor server, `OSCAR_ASSISTANT=1` and
+  `ANTHROPIC_API_KEY` must be set, and iOS needs someone to tap "Start mic" then "Start assistant"
+  on the phone with the page in the foreground.
+- This PC has an RTX 5070 Ti (16 GB VRAM), 30 GB RAM, 16 cores. TRELLIS.2 reportedly needs 24 GB, so
+  Hunyuan3D shape-only (~10 GB reported) is the first image-to-3D candidate.
+
+### Open / next
+- Hunyuan3D spike (see `LOCAL_AI_PLAN.md`; results get added here once measured).
+- Launcher + `oscar-sensor.service` so the assistant starts at boot; page auto-start after one tap.
+- Local assistant backend (Qwen3 via Ollama), then a `make_model` tool and the print handoff.
+
 ## 2026-10-22
 
 ### Added

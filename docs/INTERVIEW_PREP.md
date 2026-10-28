@@ -4,7 +4,7 @@ Living document. **Update it at the end of every working session** (see "Session
 bottom, and fix anything above that changed). Facts here come from the repo; anything not yet
 verified on hardware is marked so you never claim more than is true.
 
-Last updated: 2026-10-22.
+Last updated: 2026-10-27.
 
 ---
 
@@ -41,13 +41,16 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Phone sensor page (`sensor/`): HTTPS mic stream, WAV capture, keyword recorder | **Built, server tested (3 tests + smoke test); not tried on a real iPhone** |
 | PC wake + SSH unlock (`pc/control.py`, `hardware/pc_power.py`) | **Built, logic unit-tested (4 tests); not wired or run on hardware** |
 | Projector power | **Researched; HDMI approach tested and failed; IR blaster planned, parts not bought** |
-| Keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data yet |
+| Assistant (`assistant/`): Claude tool-use loop, habit/page/PC tools, typed REPL | **Built, unit-tested (`tests/test_assistant.py`); not exercised against the live API in this repo's tests** |
+| Wake word by transcript (VAD -> Whisper -> `wake.split_wake`) + phone mic streaming | **Built and unit-tested on text/fake audio; not run end to end on a real phone. Not started at boot (no unit); needs one tap on the phone** |
+| Trained keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data. The transcript approach replaced it for now |
+| Local AI: open image->3D (Hunyuan3D) and a local assistant model (Qwen3) | **Planned** (`docs/LOCAL_AI_PLAN.md`); Hunyuan3D spike in progress, nothing integrated |
 | Stepper turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs. Printed-base plan written (`TURNTABLE_PLAN.md`), nothing printed yet |
 | Per-wall image warp (`display/warp.py`, `display/app.py`, `/stage`, `/calibrate`) | **Built; math and server unit-tested (30 tests). `/stage` warp + live `/warp` updates confirmed in a browser on the laptop. Calibration page and tag-URL wrapping are tested by unit tests only; nothing tried on the Pi or projector yet** |
 | Start-at-boot (`systemd/` user units, `scripts/install_services.sh`) | **Written and syntax-checked (`systemd-analyze verify`); not yet installed or run on the Pi** |
 | Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); Bambu printer now in hand, no MQTT link built |
 
-Total tests: 63, all passing (`python -m unittest discover -s tests`).
+Total tests: 80, all passing (`python -m unittest discover -s tests`).
 
 ---
 
@@ -235,6 +238,8 @@ Pi (always on) <-- RFID taps, sensors
 | Phone page as mic/camera | ESP32 mic, USB mic | No hardware on hand; one page doubles as data recorder | iOS foreground/HTTPS constraints |
 | Power button pulse + SSH unlock | WoL; typing the password via a fake keyboard | WoL fails on Wi-Fi sleep; no password stored on the Pi | Needs wiring; polkit risk |
 | Self-trained keyword model | Picovoice or cloud STT | No licence, no cloud audio, owned data | Time to collect data and iterate |
+| Wake word via Whisper transcript (current) | Self-trained keyword model; Picovoice | No training data or model needed, handles Whisper mishearings with fuzzy match | Transcribes every utterance (CPU/GPU cost, audio leaves the phone for the PC), higher latency; the keyword model stays planned as a cheap gate |
+| Open models on the PC instead of paid APIs | Meshy/OpenAI/Claude subscriptions | No subscription, data stays local, interesting engineering | Hardware limit (16 GB VRAM) picks the models; quality likely below the paid ones |
 | Inject dependencies (http, ping, clock) | Mock with patch | Pure-Python tests on any laptop, no hardware | Slightly more verbose signatures |
 | User-level systemd units under one target | A shell script that launches everything; cron `@reboot`; tmux | Restart on crash, boot ordering, one command to manage all, logs in the journal | Kiosk can't be ordered against the desktop, so it relies on retry |
 | Corner-pin homography on a wrapper page | Per-page CSS rotate classes; projector keystone only; WebGL mesh | Exact for a flat wall, works on any tab, calibrated by dragging four corners | Iframe wrapper; resolution loss; flat surfaces only |
@@ -337,6 +342,18 @@ Pi (always on) <-- RFID taps, sensors
 ---
 
 ## Session log
+
+### 2026-10-27
+- Caught up the docs for the assistant work from earlier commits (tool-use loop, transcript wake
+  word, phone mic streaming) and installed all Python dependencies; 80 tests pass.
+- Answered "is it always listening?": no. No boot unit for the sensor server, needs
+  `OSCAR_ASSISTANT=1`, an API key, and a tap on the phone. Be honest about this if asked.
+- Read the public ProduHacks project (sketch+prompt -> Meshy -> GLB) and planned an open-source
+  version: Hunyuan3D for image->3D, a Qwen3-class local model for the assistant
+  (`docs/LOCAL_AI_PLAN.md`). The point to make: the choice of models came from a hardware limit
+  (16 GB VRAM), not preference.
+- Not verified: every VRAM and quality figure in the plan comes from web search, until the
+  Hunyuan3D spike is measured.
 
 ### 2026-10-22
 - Built the projection warp: homography math + tests, `/stage` wrapper with SSE live updates,

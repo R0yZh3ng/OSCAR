@@ -19,7 +19,9 @@ the same.
 | Per-wall projection warp (`display/warp.py`, `display/app.py`) | Built and unit-tested; `/stage` warp seen working in a browser. Not yet calibrated on the Pi or projector |
 | Start everything at boot (`systemd/`) | Written, syntax-checked; not yet run on the Pi |
 | Phone mic/camera page (`sensor/`), PC wake over SSH (`pc/`) | Built; not tried on real hardware |
-| Voice keyword model, command router, stepper turntable, LEDs, projector power (IR) | Designed only |
+| Assistant (`assistant/`): Claude tool-use loop, transcript-based wake word, phone mic streaming | Built and unit-tested; not started at boot and not yet run end to end on a phone |
+| Local open models (Hunyuan3D image->3D, Qwen3 assistant) and 3D-print handoff | Planned (`docs/LOCAL_AI_PLAN.md`) |
+| Trained keyword model, command router, stepper turntable, LEDs, projector power (IR) | Designed only |
 
 See `docs/` for the plans and `docs/CHANGELOG.md` for what changed when.
 
@@ -36,6 +38,11 @@ See `docs/` for the plans and `docs/CHANGELOG.md` for what changed when.
 - **`hardware/`**: drivers for the RFID reader, LCD, buzzer and PC power-button relay. Imports of
   hardware libraries stay in here so the rest runs on a laptop.
 - **`pc/`**: wakes the sleeping desktop (GPIO power-button pulse) and unlocks it over SSH.
+- **`assistant/`**: the brain. `agent.py` runs a tool-use loop over habit, page and PC tools;
+  `listener.py` cuts audio into utterances, transcribes them with Whisper and `wake.py` checks for
+  "Oscar". `python -m assistant` is a typed version. Run the phone-driven version with
+  `OSCAR_ASSISTANT=1 python -m sensor.app` (needs `ANTHROPIC_API_KEY`); then tap "Start mic" and
+  "Start assistant" on the phone page.
 - **`sensor/`**: HTTPS page that streams an iPhone's mic to the server, for recording keyword
   training data.
 - **`scripts/`**: `routine.py` (RFID loop), `calibrate.py` (warp calibration), `scan_uid.py` (read a

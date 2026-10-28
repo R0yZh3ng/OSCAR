@@ -12,6 +12,8 @@ OSCAR is a voice/RFID-controlled wall projector assistant running on a Raspberry
 
 **Physical/projection plans (2026-10-21):** `docs/TURNTABLE_PLAN.md` (3D-printed turntable base on the Bambu A1; **driven by a stepper (28BYJ-48 + ULN2003 from the kit), not a servo**: open-loop, needs a homing switch; planned `hardware/turntable.py` replaces `servo.py`, and `presets.json` uses `angle_deg` instead of `servo_angle`) and `docs/PROJECTION_PLAN.md` (per-wall `matrix3d` corner warp via a `/stage` wrapper page; replaces PLAN.md's CSS-class warp). **Built 2026-10-22** (steps 1-3): `display/warp.py` (math), `display/app.py` (`/stage`, `/warp`, `/calibrate`, port 5000; run `python -m display.app`), `scripts/calibrate.py`, and `TabSwitcher(stage=...)`. Not yet calibrated on the Pi/projector.
 
+**Assistant and local AI (2026-10-27):** `assistant/` is the brain (Claude tool-use loop; transcript-based wake word via Whisper, no keyword model yet). `docs/LOCAL_AI_PLAN.md` plans open/local replacements (Hunyuan3D image->3D, Qwen3 via Ollama) and a `make_model` -> Bambu print path. PC: RTX 5070 Ti, 16 GB.
+
 The wake-word approach is a self-trained TFLite keyword model (not Picovoice); PLAN.md wins on any conflict with USER_STORIES.md.
 
 ## Architecture (from PLAN.md)
