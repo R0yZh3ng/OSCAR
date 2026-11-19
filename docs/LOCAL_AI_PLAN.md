@@ -77,7 +77,7 @@ as an optional backend; default to local. Whisper (already open, `faster-whisper
 
 ## Build order
 
-1. **Hunyuan3D shape-only spike** (environment, code and ~7.5 GB of weights are set up in `~/ai/`; **the run itself has not happened yet**) in its own environment (`~/ai/`, outside the repo; Python 3.11,
+1. **Hunyuan3D shape-only spike** (**done 2026-11-18**: 56 s, 8.22 GB peak VRAM, 358k-vertex GLB; environment in `~/ai/`) in its own environment (`~/ai/`, outside the repo; Python 3.11,
    PyTorch cu128, because the 5070 Ti is Blackwell and PyTorch 2.5/cu124 has no kernels for it,
    **VERIFY**). Record VRAM peak and seconds on this card. Output: a GLB from a test image.
 2. **Local assistant backend**: backend interface, Ollama/Qwen3 adapter, tool-call test set.
@@ -91,7 +91,7 @@ as an optional backend; default to local. Whisper (already open, `faster-whisper
 
 ## Open questions
 
-- Does Hunyuan3D shape output come out watertight and printable, or does it need repair?
+- Hunyuan3D shape output is not watertight raw, but `trimesh` fill_holes makes it watertight (one body). Still to check: visual quality, scale/orientation, and a real slice/print.
 - Is texture needed for the wall view, or is a shaded grey mesh enough? (Texture needs ~21 GB, so it
   would not fit without offloading.)
 - Does the PC run one model at a time? (Qwen3 + Whisper + an image model will not all fit in 16 GB

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-11-18
+
+### Verified (Hunyuan3D 2.1 shape-only spike, run in `~/ai/`, outside the repo)
+- Ran `tencent/Hunyuan3D-2.1` on the repo's demo image: **load 10.8 s, generate 56.2 s, peak VRAM
+  8.22 GB** (7.37 GB after load) on the RTX 5070 Ti; PyTorch 2.14.1+cu130 works on Blackwell. Output
+  is a 358k-vertex, 716k-face GLB. Shape-only fits in 16 GB with room to spare (no offload needed).
+- Raw mesh is **not watertight** (`watertight=False`), but `trimesh` merge_vertices + fill_holes +
+  fix_normals makes it watertight and a single body (volume 0.916 in model units), so a plain repair
+  step is enough before slicing. Not yet judged for visual quality or printed.
+
+### Fixed (spike environment only)
+- Run needed `PYTHONPATH=.../hy3dshape` and `HY3DGEN_MODELS=~/ai/models` (a symlink to the HF
+  snapshot), because the repo's loader looks in a local dir, not the HF cache.
+- `transformers 5.21` / `diffusers 0.42` could not load the checkpoint (DINOv2 key names changed).
+  Pinned to the repo's `transformers==4.46.0`, `diffusers==0.30.0`, `huggingface_hub<1.0`.
+
 ## 2026-11-06
 
 ### Docs

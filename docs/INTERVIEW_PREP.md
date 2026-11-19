@@ -4,7 +4,7 @@ Living document. **Update it at the end of every working session** (see "Session
 bottom, and fix anything above that changed). Facts here come from the repo; anything not yet
 verified on hardware is marked so you never claim more than is true.
 
-Last updated: 2026-11-06.
+Last updated: 2026-11-18.
 
 ---
 
@@ -44,7 +44,7 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Assistant (`assistant/`): Claude tool-use loop, habit/page/PC tools, typed REPL | **Built, unit-tested (`tests/test_assistant.py`); not exercised against the live API in this repo's tests** |
 | Wake word by transcript (VAD -> Whisper -> `wake.split_wake`) + phone mic streaming | **Built and unit-tested on text/fake audio; not run end to end on a real phone. Not started at boot (no unit); needs one tap on the phone** |
 | Trained keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data. The transcript approach replaced it for now |
-| Local AI: open image->3D (Hunyuan3D) and a local assistant model (Qwen3) | **Planned** (`docs/LOCAL_AI_PLAN.md`); Hunyuan3D spike in progress, nothing integrated |
+| Local AI: open image->3D (Hunyuan3D) and a local assistant model (Qwen3) | **Planned** (`docs/LOCAL_AI_PLAN.md`); **Hunyuan3D shape-only spike run on the PC (56 s, 8.2 GB VRAM, mesh repairs to watertight); not yet visually judged, printed or integrated into OSCAR** |
 | Stepper turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs. Printed-base plan written (`TURNTABLE_PLAN.md`), nothing printed yet |
 | Per-wall image warp (`display/warp.py`, `display/app.py`, `/stage`, `/calibrate`) | **Built; math and server unit-tested (30 tests). `/stage` warp + live `/warp` updates confirmed in a browser on the laptop. Calibration page and tag-URL wrapping are tested by unit tests only; nothing tried on the Pi or projector yet** |
 | Start-at-boot (`systemd/` user units, `scripts/install_services.sh`) | **Written and syntax-checked (`systemd-analyze verify`); not yet installed or run on the Pi** |
@@ -384,6 +384,16 @@ Pi (always on) <-- RFID taps, sensors
 ---
 
 ## Session log
+
+### 2026-11-18
+- Ran the Hunyuan3D 2.1 shape-only spike. Measured: 56 s to generate, 8.22 GB peak VRAM, 358k-vertex
+  GLB; raw mesh not watertight but a trimesh hole-fill makes it watertight. This replaces the web-sourced
+  VRAM figures in `LOCAL_AI_PLAN.md` with real numbers for this card.
+- Problems solved: loader ignored the HF cache (fixed with a local models dir); newer `transformers`
+  renamed DINOv2 attention weights so the checkpoint would not load (fixed by pinning the repo's
+  versions). Talking point: pinned dependencies matter for research code.
+- Not verified: visual quality of the mesh, printing it, anything wired into OSCAR (`make_model` tool
+  does not exist yet). Nothing in the repo's code changed.
 
 ### 2026-11-06
 - Interview-prep pass. Re-read the assistant code and docs, added section 4.10 (assistant, wake word,
