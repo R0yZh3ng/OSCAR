@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-06
+
+### Docs
+- `docs/INTERVIEW_PREP.md`: added the assistant / wake-word / VAD section (4.10), assistant Q&A,
+  assistant constants, and corrected the test breakdown (80 total). No code changes.
+
+### Findings
+- `python -m unittest discover -s tests` with the system Python fails 3 modules on import (no flask
+  or anthropic); with `venv/bin/python` all 80 tests pass.
+
 ## 2026-10-27
 
 ### Added (earlier commits, documented today)

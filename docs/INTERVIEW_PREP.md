@@ -4,7 +4,7 @@ Living document. **Update it at the end of every working session** (see "Session
 bottom, and fix anything above that changed). Facts here come from the repo; anything not yet
 verified on hardware is marked so you never claim more than is true.
 
-Last updated: 2026-10-27.
+Last updated: 2026-11-06.
 
 ---
 
@@ -214,7 +214,35 @@ Pi (always on) <-- RFID taps, sensors
 - **`README.md`** (added 2026-10-22) documents status, what each part does, these commands, running
   by hand, calibration and ports. It is the first thing an interviewer opening the repo will see.
 
-### 4.10 Not built yet (designed)
+### 4.10 The assistant (`assistant/`)
+- **What it is:** a text-in/text-out brain. `Assistant.ask(text)` runs a Claude **tool-use loop**
+  (`agent.py`): send the history and tool schemas, if the reply has `tool_use` blocks run each one and
+  send back `tool_result` blocks, repeat until the model answers in plain text. Capped at `MAX_TURNS=8`
+  so a confused model can't loop forever; a `refusal` stop reason returns a canned apology.
+- **Input-agnostic, same rule as the router:** the typed REPL (`python -m assistant`), the voice
+  listener and later RFID/gesture triggers all call `ask`. History is append-only (required when
+  thinking blocks are on) and resets after 300 s idle so an old request doesn't leak into a new one.
+- **Tools (`tools.py`):** `list_habits`, `complete_habit`, `log_habit`, `undo_habit`, `skip_habit`,
+  `show_page`, `list_pages`, `wake_pc`. Each is a thin wrapper over an existing module; habit tools go
+  through `actions.dispatch(source="assistant")`, so the audit log, XP and level-ups work unchanged.
+  Specs are one dict (`SPECS`), and the JSON schema sent to the model is generated from it.
+- **Failure handling:** `Tools.call` never raises. It returns `(text, is_error)` so the model sees
+  the failure (`is_error: true`) and can explain it. Replies are meant to be spoken, so the system
+  prompt demands one or two plain sentences with no markdown. Ambiguous habit names: call
+  `list_habits` first instead of guessing.
+- **Wake word by transcript (`wake.py`, `listener.py`):** an energy VAD (`Segmenter`) with an adaptive
+  noise floor (it only learns from silence) cuts the 16 kHz stream into utterances, with pre-roll and
+  hangover so word edges aren't clipped. `faster-whisper` on the PC GPU transcribes each one (falls back
+  to CPU int8). `split_wake` accepts the name only at the start (after an optional "hey") or end of the
+  utterance, so a sentence that merely mentions Oscar doesn't trigger. It accepts known Whisper
+  mishearings plus a fuzzy match, but rejects "oscars"/"oscarson". Saying only "Oscar" arms the
+  next utterance for 8 s ("Yes?").
+- **Tests (15):** fake Anthropic client and fake clock; wake-word text cases; VAD on synthetic audio.
+  **Not verified:** a real call to the live API from the test suite, or end to end on a real phone.
+- **Planned swap:** `docs/LOCAL_AI_PLAN.md` puts an Ollama/Qwen3 backend behind an interface; the loop
+  is written against Anthropic content blocks today, so that is real refactor work, not a config flag.
+
+### 4.11 Not built yet (designed)
 - **Keyword model:** log-mel spectrogram of a ~1 s window, small depthwise-separable CNN, softmax
   over `oscar, wall, closet, schedule, hide, sleep` + background; trained off the Pi in TensorFlow,
   exported int8 TFLite, threshold + debounce at inference. Chosen over a paid wake-word engine to
@@ -311,6 +339,16 @@ Pi (always on) <-- RFID taps, sensors
   removes its XP, and the perfect-day bonus is recomputed.
 - **What would you do differently?** Start with measurements earlier (display, projector), and
   write the router before peripherals so each new input was only a caller.
+- **How does the assistant decide what to do?** It doesn't parse commands. The model gets tool
+  schemas and picks calls; my code just executes them and returns strings. Adding a capability is one
+  `SPECS` entry plus a `t_<name>` method.
+- **Why transcribe everything instead of a wake-word engine?** No training data or model needed to
+  start, and the fuzzy match handles mishearings. Cost: every utterance goes through Whisper and the
+  audio leaves the phone for the PC. The keyword model stays planned as a cheap gate.
+- **What stops the LLM doing something dangerous?** It can only call the eight tools, each a thin
+  wrapper with validation. Nothing runs shell commands. Errors come back as `is_error` results.
+- **Why a local model later?** No subscription and data stays home. Tool-calling quality of small
+  models is untested; I'd measure it on a fixed utterance set first.
 - **What's the hardest part left?** The keyword model: data collection and iterating on false
   triggers in a real room.
 
@@ -324,7 +362,11 @@ Pi (always on) <-- RFID taps, sensors
 - Audio: 16 kHz mono int16, ~100 ms chunks (1600 samples), 1 s keyword clips, 6 keywords + background.
 - Habit strength decay `0.5**(1/9)`; XP 10/20/35; streak bonus cap +50% at 30 days; perfect day +25%.
 - Wall theme zoom 1.8x; tab switching via DevTools `/json/list` and `/json/activate/<id>`.
-- Tests: 63 (tracker 16, warp 13, display app 17, tabs 10, PC control 4, sensor 3).
+- Tests: 80 (tracker 16, warp 13, display app 17, tabs 10, PC control 4, sensor 5, assistant 15).
+  Run with the project venv (`venv/bin/python -m unittest discover -s tests`); the system Python
+  lacks flask/anthropic and shows 3 import errors.
+- Assistant: model `claude-opus-5-5`, effort `low`, `MAX_TURNS=8`, 300 s idle reset, 8 tools, Whisper
+  `small.en`, VAD frame 20 ms, hangover 0.7 s, armed window 8 s.
 - Key docs: `PLAN.md` (v1 design), `PI_HUB_PLAN.md` (current architecture), `PHONE_SENSOR_PLAN.md`,
   `HABIT_TRACKER_PLAN.md`, `BAMBU_PLAN.md`, `USER_STORIES.md` (US-1..22), `CHANGELOG.md`.
 
@@ -342,6 +384,14 @@ Pi (always on) <-- RFID taps, sensors
 ---
 
 ## Session log
+
+### 2026-11-06
+- Interview-prep pass. Re-read the assistant code and docs, added section 4.10 (assistant, wake word,
+  VAD), assistant Q&A, and corrected the test breakdown (80 total, sensor 5, assistant 15).
+- Verified: 80 tests pass in the project `venv`; with system Python 3 test modules fail to import
+  (missing flask/anthropic), which is an environment issue, not a bug.
+- No new features built. Still unverified on hardware: warp on the projector, systemd units, PC wake,
+  phone mic end to end, Hunyuan3D run.
 
 ### 2026-10-27
 - Caught up the docs for the assistant work from earlier commits (tool-use loop, transcript wake
