@@ -4,7 +4,7 @@ Living document. **Update it at the end of every working session** (see "Session
 bottom, and fix anything above that changed). Facts here come from the repo; anything not yet
 verified on hardware is marked so you never claim more than is true.
 
-Last updated: 2026-11-18.
+Last updated: 2026-11-26.
 
 ---
 
@@ -36,7 +36,7 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Piece | State |
 |---|---|
 | Habit tracker (`tracker/`): actions, SQLite, stats, XP/levels, UI, wall theme | **Built, unit-tested (16 tests), used on the real projector** |
-| Chromium tab switching on RFID tap (`display/tabs.py`, `scripts/routine.py`) | **Built, unit-tested, tab switching confirmed working by hand** |
+| Chromium tab switching on RFID tap (`display/tabs.py`, `scripts/routine.py`) | **Built, unit-tested; confirmed on the Pi with RFID tags and the warp wrapper (2026-11-26)** |
 | RFID reader + LCD + buzzer drivers (`hardware/*`) | Built earlier, used on the Pi |
 | Phone sensor page (`sensor/`): HTTPS mic stream, WAV capture, keyword recorder | **Built, server tested (3 tests + smoke test); not tried on a real iPhone** |
 | PC wake + SSH unlock (`pc/control.py`, `hardware/pc_power.py`) | **Built, logic unit-tested (4 tests); not wired or run on hardware** |
@@ -46,7 +46,7 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Trained keyword/wake-word model | **Designed only** (`docs/PLAN.md`); no model, no training data. The transcript approach replaced it for now |
 | Local AI: open image->3D (Hunyuan3D) and a local assistant model (Qwen3) | **Planned** (`docs/LOCAL_AI_PLAN.md`); **Hunyuan3D shape-only spike run on the PC (56 s, 8.2 GB VRAM, mesh repairs to watertight); not yet visually judged, printed or integrated into OSCAR** |
 | Stepper turntable, LEDs, command router/daemon | **Designed only**; `servo.py`, `leds.py`, `daemon.py` are empty stubs. Printed-base plan written (`TURNTABLE_PLAN.md`), nothing printed yet |
-| Per-wall image warp (`display/warp.py`, `display/app.py`, `/stage`, `/calibrate`) | **Built; math and server unit-tested (30 tests). `/stage` warp + live `/warp` updates confirmed in a browser on the laptop. Calibration page and tag-URL wrapping are tested by unit tests only; nothing tried on the Pi or projector yet** |
+| Per-wall image warp (`display/warp.py`, `display/app.py`, `/stage`, `/calibrate`) | **Built; math and server unit-tested (30 tests). `/stage` warp + live `/warp` updates confirmed in a browser on the laptop. Calibration page and tag-URL wrapping also work on the Pi and projector. The test wall needed no correction, so a real corrective warp is still unverified** |
 | Start-at-boot (`systemd/` user units, `scripts/install_services.sh`) | **Written and syntax-checked (`systemd-analyze verify`); not yet installed or run on the Pi** |
 | Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); Bambu printer now in hand, no MQTT link built |
 
@@ -299,6 +299,14 @@ Pi (always on) <-- RFID taps, sensors
    the `#/year` case. Also a stray `.` after a `curl` body gave a misleading "unknown wall None"
    error because invalid JSON was silently treated as empty; now a clear 400.
 
+9. **A fake that was too forgiving.** Year-view tabs showed the dashboard and multiplied, although
+   tests passed. Listing Chromium's real tabs showed it percent-decodes the URL it is asked to open,
+   splitting the wrapper URL at `#`. Fixed by encoding once more, and made the fake decode too; the
+   new test fails on the old code. Lesson: a fake only tests your assumptions.
+10. **"Missing package" that was a dying filesystem.** A vague Socket.IO error led to a failed import,
+    then pip's `Errno 74`, then ext4 checksum errors in `dmesg`. Backed up, forced `fsck`, checked
+    system packages and Git, rebuilt the venv. Root cause was not established.
+
 ---
 
 ## 7. Talking points by theme
@@ -375,7 +383,9 @@ Pi (always on) <-- RFID taps, sensors
 ## 10. Known limits and next steps (say these before they are asked)
 
 - Voice, router, servo and LEDs are designed but not built; the demo is RFID -> tracker on the wall.
-- The systemd units and the projection warp have not been run on the Pi or the real projector yet.
+- The systemd units have not been run on the Pi. The warp wrapper runs there, but no wall that needs correction has been calibrated.
+- The Pi's SD card had filesystem corruption (repaired, cause unknown); it may need replacing.
+- The display app does not reapply a saved wall after a restart.
 - The PC wake, phone page and IR projector control are unverified on real hardware.
 - Chromium tab memory and stale tabs; no offline/PWA queue for the tracker yet.
 - Next: IR projector control, the router/state machine, keyword data collection via the phone page,
@@ -384,6 +394,14 @@ Pi (always on) <-- RFID taps, sensors
 ---
 
 ## Session log
+
+### 2026-11-26
+- First hardware test session for the warp stack. Calibration page worked on the projector; RFID tab
+  switching with the wrapper works after fixing a URL-encoding bug (section 6, story 9). 80 tests pass
+  on the PC.
+- Repaired ext4 corruption on the Pi and rebuilt its venv (story 10); only the tracker, display,
+  RFID and LCD packages were requested.
+- Not verified: start at boot, a wall that needs real correction, phone/assistant, PC wake.
 
 ### 2026-11-18
 - Ran the Hunyuan3D 2.1 shape-only spike. Measured: 56 s to generate, 8.22 GB peak VRAM, 358k-vertex

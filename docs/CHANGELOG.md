@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-11-26
+
+### Fixed
+- **Wrapped hash-route tabs** (`display/tabs.py`): Chromium percent-decodes the `/json/new` query
+  once, so the `#/year` inside a `/stage` URL became a real `#` and the wrapper loaded the dashboard.
+  The year tab was never matched, so duplicates piled up. The whole target is now encoded, and the
+  fake Chromium in `tests/test_tabs.py` decodes like the real one. 80 tests pass.
+
+### Verified on the Pi and projector
+- The calibration page works against the projector. This wall needs no correction, so the saved
+  corners are the full screen; a non-trivial warp has not been checked on a real wall.
+- RFID tag switching with the warp wrapper works after the fix.
+
+### Pi SD card corruption (repaired)
+- The tracker failed with `Invalid async_mode` because `simple_websocket` could not be imported;
+  `pip` then hit `Errno 74`, and `dmesg` showed ext4 `checksum invalid` errors. `vcgencmd
+  get_throttled` was `0x0` (current boot only). The cause is unknown.
+- A forced `fsck` made many repairs. `dpkg --verify` reported no missing files (12 changed files, 10
+  of them marked as config); `git fsck` passed. Recovered files remain in `/lost+found`. The venv was
+  rebuilt with only the packages for tracker, display, RFID and LCD; the old one is `venv.broken`.
+
+### Open / next
+- Watch `dmesg` for new ext4 errors; replace the card if they return.
+- `display.app` starts with no wall applied after a restart; apply the last-used wall on startup.
+- Start-at-boot (`systemd/`) is still untested on the Pi.
+
 ## 2026-11-18
 
 ### Verified (Hunyuan3D 2.1 shape-only spike, run in `~/ai/`, outside the repo)
