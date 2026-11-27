@@ -12,13 +12,18 @@ from . import actions, stats
 from .db import connect, parse, today
 
 PORT = int(os.environ.get("OSCAR_TRACKER_PORT", 5001))
+# your own audio files for background music; data/ is not committed
+MUSIC_DIR = os.environ.get("OSCAR_MUSIC_DIR",
+                           os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "music"))
+AUDIO_TYPES = (".mp3", ".ogg", ".opus", ".m4a", ".wav", ".flac")
 
 socketio = SocketIO(cors_allowed_origins="*")
 
 
-def create_app(db_path=None):
+def create_app(db_path=None, music_dir=None):
     app = Flask(__name__, static_folder="static", static_url_path="/static")
     app.config["DB_PATH"] = db_path
+    music_dir = music_dir or MUSIC_DIR
     socketio.init_app(app)
 
     def db():
@@ -27,6 +32,17 @@ def create_app(db_path=None):
     @app.get("/")
     def index():
         return send_from_directory(app.static_folder, "index.html")
+
+    @app.get("/api/music")
+    def music():
+        names = os.listdir(music_dir) if os.path.isdir(music_dir) else []
+        return jsonify(sorted(n for n in names if n.lower().endswith(AUDIO_TYPES)))
+
+    @app.get("/music/<path:name>")
+    def track(name):
+        if not name.lower().endswith(AUDIO_TYPES):
+            return jsonify({"error": "not an audio file"}), 404
+        return send_from_directory(music_dir, name)
 
     @app.get("/api/state")
     def state():
