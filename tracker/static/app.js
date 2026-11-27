@@ -180,27 +180,23 @@ function widget(key, title, body, cls = "") {
 const loading = `<div class="dim small" style="padding:18px 0">Loading…</div>`;
 const avg = (a) => a.length ? a.reduce((s, x) => s + x.rate, 0) / a.length : null;
 
+const MORE = [["habits","All habits"], ["patterns","Patterns"], ["year","Year"], ["ranking","Strength"],
+  ["balance","Balance"], ["xp","XP"], ["rewards","Rewards"], ["mood","Mood"]];
+
 function dashboard() {
   const isToday = S.view === S.today;
+  const longDate = pd(S.view).toLocaleString("en", {weekday: "long", month: "long", day: "numeric"});
   const head = `<header class="top"><div>
-      <h1>${isToday ? greeting() : pd(S.view).toLocaleString("en", {weekday: "long", month: "short", day: "numeric"})}</h1>
-      <div class="dim small">${isToday ? pd(S.view).toLocaleString("en", {weekday: "long", month: "long", day: "numeric"})
-        : `Editing a past day · <a href="#" data-do="day" data-date="${S.today}" style="color:var(--accent)">back to today</a>`}</div></div>
-      <button class="btn primary" id="addbtn" data-do="add">+ Habit</button></header>`;
-  const ok = stats && stats.totals.habits;
-  const st = (fn) => stats ? (ok ? fn() : `<div class="dim small" style="padding:14px 0">Add a habit and log a few days to fill this in.</div>`) : loading;
+      <h1>${isToday ? greeting() : longDate}</h1>
+      <div class="dim small">${isToday ? longDate
+        : `Editing a past day · <a href="#" data-do="day" data-date="${S.today}">back to today</a>`}</div></div>
+      <button class="btn" id="addbtn" data-do="add">+ New habit</button></header>`;
+  const trend = !stats ? loading : stats.totals.habits ? wTrendBody()
+    : `<div class="dim small">Add a habit and log a few days to fill this in.</div>`;
   return `${head}
-    <div class="top-grid"><div>${wHabits()}</div><div class="stack">${wLevel()}${wStreaks()}${wMood()}</div></div>
-    <div class="board">
-      ${widget("trend", "Completion trend", st(wTrendBody), "s12")}
-      ${widget("patterns", "Best days", st(() => cols(weekdayItems(), {})), "s4")}
-      ${widget("patterns", "Time of day", st(() => cols(todItems(), {color: "var(--gold)"})), "s4")}
-      ${widget("balance", "Life balance", st(() => radarOrBars(190)), "s4")}
-      ${widget("year", "Your year", st(() => yearHeat(stats.heatmap, {days: 182, compact: true})), "s12")}
-      ${widget("ranking", "Habit strength", st(() => rankRows(stats.ranking.slice(0, 5))), "s6")}
-      ${widget("xp", "XP · 2 weeks", st(wXpBody), "s6")}
-      ${widget("rewards", "Achievements", wAchBody(), "s12")}
-    </div>`;
+    <div class="top-grid"><div>${wHabits()}</div><aside>${wLevel()}${wStreaks()}${wMood()}</aside></div>
+    <div class="board">${widget("trend", "Completion trend", trend)}</div>
+    <nav class="more">${MORE.map(([k, l]) => `<button data-do="page" data-p="${k}">${l}</button>`).join("")}</nav>`;
 }
 
 function wHabits() {
@@ -209,47 +205,43 @@ function wHabits() {
     <button class="arrow" data-do="week" data-n="-7" aria-label="Previous week">‹</button>
     ${S.week.map(d => {
       const dt = pd(d.date), fut = d.date > S.today;
+      const mark = d.ratio === 1 ? "full" : d.ratio > 0 ? "part" : "";
       return `<button class="day ${d.date === S.view ? "sel" : ""} ${d.date === S.today ? "today" : ""}" ${fut ? "disabled" : ""}
         data-do="day" data-date="${d.date}"><span>${dt.toLocaleString("en", {weekday: "short"})}</span>
-        ${ring(d.ratio ?? 0, d.ratio === 1 ? "var(--ok)" : "var(--accent)", 34, 4,
-          `<small style="font-size:11px;font-weight:600">${dt.getDate()}</small>`, d.ratio === 1)}</button>`;
+        <b>${dt.getDate()}</b><i class="${mark}"></i></button>`;
     }).join("")}
     <button class="arrow" data-do="week" data-n="7" ${canNext ? "" : "disabled"} aria-label="Next week">›</button></div>`;
 
   const todays = S.habits.filter(h => h.scheduled_today);
   const groups = Object.keys(TODS).map(k => [k, todays.filter(h => h.time_of_day === k)]).filter(([, hs]) => hs.length);
-  const body = groups.length ? `<div class="groups">${groups.map(([k, hs]) => `<div>
-      <h3 class="tod">${TODS[k][0]} ${TODS[k][1]} <span class="grow"></span><span>${hs.filter(h => h.done).length}/${hs.length}</span></h3>
-      <div class="habits">${hs.map(tile).join("")}</div></div>`).join("")}</div>`
-    : `<div class="empty"><div style="font-size:54px">🌱</div><p><b>Start your first habit</b></p>
+  const body = groups.length ? `<div class="groups">${groups.map(([k, hs]) => `<div class="group">
+      <h3 class="tod">${TODS[k][1]} <span>${hs.filter(h => h.done).length}/${hs.length}</span></h3>
+      ${hs.map(tile).join("")}</div>`).join("")}</div>`
+    : `<div class="empty"><p><b>Start your first habit</b></p>
         <button class="btn primary" data-do="add">+ Add a habit</button></div>`;
-  const done = tp.total && tp.done === tp.total;
   return `<section class="w habits-w" data-do="page" data-p="habits">
-    <header><h2>Today · ${tp.done}/${tp.total}${done ? " ✨" : ""}</h2><span class="chev">All habits ›</span></header>
+    <header><h2>Today</h2><span class="count">${tp.done} of ${tp.total}</span></header>
+    <div class="bar day-progress"><i style="width:${tp.total ? tp.done / tp.total * 100 : 0}%"></i></div>
     ${week}${body}</section>`;
 }
 
+// one checklist row; partial progress fills the checkbox from the bottom
 function tile(h) {
-  const pct = h.done ? 1 : Math.min(h.value / h.target, 1);
-  const sub = h.skipped_today ? "skipped" : h.type === "check" ? (h.done ? "done ✓" : "") :
-    `${fmt(h.value)}/${fmt(h.target)}${esc(h.unit)}`;
-  const icon = `<span style="font-size:32px;${h.done ? "filter:drop-shadow(0 1px 2px #0006)" : ""}">${esc(h.icon) || "●"}</span>`;
-  return `<div class="tile ${h.skipped_today ? "skipped" : ""}" data-id="${h.id}">
-    ${h.streak >= 2 ? `<span class="flame">🔥${h.streak}</span>` : ""}
-    <button class="ringbtn" data-do="tap" data-id="${h.id}" aria-label="${esc(h.name)}">
-      ${ring(pct, h.color, 84, 7, icon, h.done)}</button>
-    <button class="nm" style="background:none;border:0;padding:0" data-do="open" data-id="${h.id}">${esc(h.name)}</button>
-    <div class="sub">${sub}</div></div>`;
+  const pct = h.done ? 100 : Math.min(h.value / h.target, 1) * 100;
+  const sub = h.skipped_today ? "Skipped" : h.type === "check" ? "" : `${fmt(h.value)}/${fmt(h.target)}${esc(h.unit)}`;
+  return `<div class="tile ${h.done ? "done" : ""} ${h.skipped_today ? "skipped" : ""}" data-id="${h.id}" style="--c:${h.color};--p:${pct}%">
+    <button class="ringbtn" data-do="tap" data-id="${h.id}" aria-label="${esc(h.name)}" aria-pressed="${h.done}"><i></i></button>
+    <span class="ic">${esc(h.icon)}</span>
+    <button class="nm" data-do="open" data-id="${h.id}">${esc(h.name)}</button>
+    <span class="sub">${sub}</span>
+    ${h.streak >= 2 ? `<span class="flame" title="${h.streak}-day streak">🔥 ${h.streak}</span>` : ""}</div>`;
 }
 
 function wLevel() {
-  const L = S.level, tp = S.today_progress;
-  return widget("rewards", "Level", `<div class="lvlrow">
-    ${ring(L.progress, "var(--gold)", 96, 10, `<span class="dim" style="font-size:10px">LV</span><b style="font-size:30px;line-height:1">${L.level}</b>`)}
-    <div class="grow"><div class="lvl">${esc(L.title)}</div>
-      <div class="bar"><i style="width:${L.progress * 100}%"></i></div>
-      <div class="dim small">${L.level_span - L.into_level} XP to level ${L.level + 1}</div>
-      ${S.perfect_run ? `<div class="small" style="margin-top:4px">🔥 ${S.perfect_run}-day perfect run</div>` : ""}</div></div>`);
+  const L = S.level;
+  return widget("rewards", "Progress", `<div class="lvlrow"><b class="lvl">Level ${L.level}</b><span class="dim">${esc(L.title)}</span></div>
+    <div class="bar"><i style="width:${L.progress * 100}%"></i></div>
+    <div class="dim small">${L.level_span - L.into_level} XP to level ${L.level + 1}${S.perfect_run ? ` · ${S.perfect_run}-day perfect run` : ""}</div>`);
 }
 
 function wStreaks() {
@@ -257,7 +249,7 @@ function wStreaks() {
   return widget("streaks", "Streaks", hs.length ? hs.map(h => {
     const risk = h.scheduled_today && !h.done && !h.skipped_today && h.streak > 0;
     return `<div class="rank"><span class="ic">${esc(h.icon)}</span><span class="nmx">${esc(h.name)}</span>
-      <b>${h.streak ? "🔥 " + h.streak : "–"}</b>${risk ? `<span class="risk" title="Do it today to keep the streak">!</span>` : ""}</div>`;
+      ${risk ? `<span class="risk" title="Do it today to keep the streak"></span>` : ""}<b>${h.streak || "–"}</b></div>`;
   }).join("") : `<div class="dim small" style="padding:10px 0">Complete a habit to start a streak.</div>`);
 }
 
@@ -297,19 +289,6 @@ function radarOrBars(size) {
   return stats.wheel.length >= 3 ? `<div class="center">${radar(stats.wheel, size)}</div>` :
     stats.wheel.map(w => `<div class="rank"><span class="nmx">${esc(w.name)}</span><div class="bar"><i style="width:${(w.rate || 0) * 100}%"></i></div><b>${pctText(w.rate)}</b></div>`).join("") +
     `<div class="dim small">Use 3+ categories to see your wheel.</div>`;
-}
-
-function wXpBody() {
-  const x = stats.xp_series.slice(-14);
-  return cols(x.map(d => ({label: pd(d.date).getDate(), v: d.xp})), {pct: false, color: "var(--gold)"}) +
-    `<div class="dim small" style="margin-top:8px">${stats.xp_series.reduce((s, d) => s + d.xp, 0)} XP in the last 30 days</div>`;
-}
-
-function wAchBody() {
-  const got = S.achievements.filter(a => a.unlocked_at).length;
-  return `<div class="achrow">${S.achievements.map(a =>
-    `<span class="${a.unlocked_at ? "on" : "lock"}" title="${esc(a.title)}: ${esc(a.description)}">${ACH_ICON[a.key] || "🏆"}</span>`).join("")}</div>
-    <div class="dim small" style="margin-top:6px">${got} of ${S.achievements.length} unlocked</div>`;
 }
 
 // ------------------------------------------------------------------ full pages (opened from widgets)
