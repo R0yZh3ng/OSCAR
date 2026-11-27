@@ -1,5 +1,6 @@
 import json
 import unittest
+from urllib.parse import unquote
 
 from display.tabs import TabSwitcher, stage_url, unwrap
 
@@ -10,7 +11,9 @@ class FakeChromium:
         self.calls = []
 
     def __call__(self, method, url):
-        self.calls.append((method, url.split("9222")[1]))
+        assert "#" not in url, "urllib would silently drop everything after '#'"
+        # like real Chromium, percent-decode the request once (seen on the Pi via /json/list)
+        self.calls.append((method, unquote(url.split("9222")[1])))
         if url.endswith("/json/list"):
             return json.dumps(self.tabs)
         return ""
@@ -47,7 +50,7 @@ class TabSwitcherTest(unittest.TestCase):
         self.assertTrue(self.sw.show("http://localhost:5001/#/year"))
         self.assertEqual(self.fake.calls[-1], ("GET", "/json/activate/T1"))
         self.assertFalse(self.sw.show("http://localhost:5001/#/streaks"))
-        self.assertEqual(self.fake.calls[-1], ("PUT", "/json/new?http://localhost:5001/%23/streaks"))
+        self.assertEqual(self.fake.calls[-1], ("PUT", "/json/new?http://localhost:5001/#/streaks"))
 
     def test_ignores_non_page_targets(self):
         self.assertEqual([t["id"] for t in self.sw.tabs()], ["A", "B"])
@@ -76,7 +79,8 @@ class WrappedTabsTest(unittest.TestCase):
         method, path = self.fake.calls[-1]
         self.assertEqual(method, "PUT")
         self.assertEqual(path, "/json/new?" + stage_url(YEAR, STAGE))
-        self.assertNotIn("#", path)
+        opened = path[len("/json/new?"):]
+        self.assertEqual(unwrap(opened), YEAR)  # the hash route survives into the wrapper
 
     def test_wrapped_hash_routes_are_still_separate_tabs(self):
         # every wrapped tab shares the /stage path; only the inner URL tells them apart

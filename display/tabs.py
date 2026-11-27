@@ -75,9 +75,11 @@ class TabSwitcher:
         if tab:
             self._http("GET", f"{self._base}/json/activate/{tab['id']}")
             return True
-        # urllib drops '#...' from a request URL, so escape it for Chromium to read back
+        # Chromium percent-decodes this query once, so encode the whole target: otherwise the stage
+        # URL's inner '%23' turns into a real '#' and the wrapper loses the page's hash route.
+        # (It also stops urllib dropping '#...' from the request.)
         target = stage_url(url, self._stage) if self._stage else url
-        self._http("PUT", f"{self._base}/json/new?{target.replace('#', '%23')}")
+        self._http("PUT", f"{self._base}/json/new?{quote(target, safe='')}")
         return False
 
     def close(self, url):
