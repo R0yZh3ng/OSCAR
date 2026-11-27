@@ -88,6 +88,13 @@ python -m unittest discover -s tests  # tests, no hardware needed
 
 Demo data for the tracker: `OSCAR_TRACKER_DB=data/demo.db python scripts/seed_demo.py`.
 
+## Background music
+
+Put your own audio files (`.mp3`, `.ogg`, `.opus`, `.m4a`, `.wav`, `.flac`) in `data/music/` on the
+machine running the tracker (not committed). The tracker page loops them while it is visible. Add
+`&music=0` to a URL to turn it off. The kiosk script allows autoplay; other browsers wait for a tap.
+Restart the kiosk after changing its flags, and check the Pi's audio output if you hear nothing.
+
 ## Calibrating a wall's warp
 
 1. Run the display app, then `python scripts/calibrate.py wall` (use any wall name).

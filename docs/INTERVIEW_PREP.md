@@ -35,7 +35,7 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 
 | Piece | State |
 |---|---|
-| Habit tracker (`tracker/`): actions, SQLite, stats, XP/levels, UI, wall theme | **Built, unit-tested (16 tests), used on the real projector** |
+| Habit tracker (`tracker/`): actions, SQLite, stats, XP/levels, UI, wall theme | **Built, unit-tested (16 tests), used on the real projector.** The 2026-11-26 UI redesign has only been checked in headless screenshots; background music (4 tests) has not been heard on the Pi |
 | Chromium tab switching on RFID tap (`display/tabs.py`, `scripts/routine.py`) | **Built, unit-tested; confirmed on the Pi with RFID tags and the warp wrapper (2026-11-26)** |
 | RFID reader + LCD + buzzer drivers (`hardware/*`) | Built earlier, used on the Pi |
 | Phone sensor page (`sensor/`): HTTPS mic stream, WAV capture, keyword recorder | **Built, server tested (3 tests + smoke test); not tried on a real iPhone** |
@@ -50,7 +50,7 @@ you had AI assistance on, and make sure you can explain every file you mention. 
 | Start-at-boot (`systemd/` user units, `scripts/install_services.sh`) | **Written and syntax-checked (`systemd-analyze verify`); not yet installed or run on the Pi** |
 | Gestures, Bambu A1 printer link | Planned (`PHONE_SENSOR_PLAN.md`, `BAMBU_PLAN.md`); Bambu printer now in hand, no MQTT link built |
 
-Total tests: 80, all passing (`python -m unittest discover -s tests`).
+Total tests: 84, all passing (`python -m unittest discover -s tests`).
 
 ---
 
@@ -370,7 +370,7 @@ Pi (always on) <-- RFID taps, sensors
 - Audio: 16 kHz mono int16, ~100 ms chunks (1600 samples), 1 s keyword clips, 6 keywords + background.
 - Habit strength decay `0.5**(1/9)`; XP 10/20/35; streak bonus cap +50% at 30 days; perfect day +25%.
 - Wall theme zoom 1.8x; tab switching via DevTools `/json/list` and `/json/activate/<id>`.
-- Tests: 80 (tracker 16, warp 13, display app 17, tabs 10, PC control 4, sensor 5, assistant 15).
+- Tests: 84 (music 4, tracker 16, warp 13, display app 17, tabs 10, PC control 4, sensor 5, assistant 15).
   Run with the project venv (`venv/bin/python -m unittest discover -s tests`); the system Python
   lacks flask/anthropic and shows 3 import errors.
 - Assistant: model `claude-opus-5-5`, effort `low`, `MAX_TURNS=8`, 300 s idle reset, 8 tools, Whisper
@@ -396,6 +396,9 @@ Pi (always on) <-- RFID taps, sensors
 ## Session log
 
 ### 2026-11-26
+- Redesigned the tracker UI (checklist rows, fewer dashboard widgets) and added background music from
+  local files. Design point: the wall can't scroll or click, so less on screen is the feature. Music
+  pauses on hidden pages so several preloaded tabs don't play over each other.
 - First hardware test session for the warp stack. Calibration page worked on the projector; RFID tab
   switching with the wrapper works after fixing a URL-encoding bug (section 6, story 9). 80 tests pass
   on the PC.

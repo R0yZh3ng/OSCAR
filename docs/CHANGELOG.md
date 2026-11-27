@@ -2,6 +2,18 @@
 
 ## 2026-11-26
 
+### Changed (tracker UI)
+- Flatter, Notion-like look: habits are checklist rows instead of large rings; the dashboard keeps
+  habits, a slim sidebar and one trend chart, with the other pages behind small links. Wall mode
+  follows the same layout. Checked with headless screenshots (wall, year, desktop, narrow, habit
+  detail); not yet seen on the projector.
+
+### Added
+- Background music from `data/music/` (`tracker/static/music.js`, `/api/music`, `/music/<file>`):
+  plays only while the page is visible, with a mute button. Kiosk Chromium and the `/stage` iframe
+  now allow autoplay. 4 new tests (84 total). Autoplay was checked in headless Chromium by loading
+  the tracker directly; audible output, the wrapper and tab switching are untested.
+
 ### Fixed
 - **Wrapped hash-route tabs** (`display/tabs.py`): Chromium percent-decodes the `/json/new` query
   once, so the `#/year` inside a `/stage` URL became a real `#` and the wrapper loaded the dashboard.
